@@ -1,0 +1,51 @@
+#! /bin/bash
+
+# Worspaces windows groups
+personal_chrome='Pablo'
+work_chrome='What if)'
+zoom_meeting='Zoom Meeting'
+
+# Ordering
+center=("$zoom_meeting")
+left=("$work_chrome")
+mac=("$personal_chrome")
+
+# Get the ids
+echo "Center display"
+for window_name in "${center[@]}"; do
+  win_id=($(aerospace list-windows --all | grep "$window_name" | awk '{print $1}'))
+  if [[ -z $win_id ]]; then
+    echo "No window found"
+  else
+    for id in "${win_id[@]}"; do
+      echo "$id"
+      aerospace move-node-to-workspace --window-id "$id" "3"
+    done
+  fi
+done
+
+echo "Left display"
+for window_name in "${left[@]}"; do
+  win_id=($(aerospace list-windows --all | grep "$window_name" | awk '{print $1}'))
+  if [[ -z $win_id ]]; then
+    echo "No window found"
+  else
+    for id in "${win_id[@]}"; do
+      echo "$id"
+      aerospace move-node-to-workspace --window-id "$id" "W"
+    done
+  fi
+done
+
+echo "Mac display"
+for window_name in "${mac[@]}"; do
+  win_id=($(aerospace list-windows --all | grep "$window_name" | grep -v "$work_chrome" | awk '{print $1}'))
+  if [[ -z "${#win_id[@]}" ]]; then
+    echo "No window found"
+  else
+    for id in "${win_id[@]}"; do
+      echo "$id"
+      aerospace move-node-to-workspace --window-id "$id" "P"
+    done
+  fi
+done

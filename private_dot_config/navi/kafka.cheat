@@ -1,0 +1,20 @@
+% kafka
+
+# Create people topic with 3 partitions from within broker container.
+kafka-topics --bootstrap-server localhost:9092 --create --topic people --replication-factor 1 --partitions 3
+
+# Create pets topic with 1 partition from within broker container.
+kafka-topics --bootstrap-server localhost:9092 --create --topic pets --replication-factor 1 --partitions 1
+
+# List topics from within broker container
+kafka-topics --bootstrap-server localhost:9092 --list
+
+# Describe the people topic.
+kafka-topic --bootstrap-server localhost:9092 --describe --topic people
+
+# To create a topic with a specific retention policy and/or as a compacted topic.
+kafka-topics --bootstrap-server localhost:9092 --create --topic people.promotions --partitions 1 --replication-factor 1 \
+  --config retention.ms=360000 --config cleanup.policy=compact
+
+# To get a detailed look at al the configs that are used by a particular topic using the kafka-configs CLI tool.
+kafka-configs --bootstrap-server localhost:9092 --describe --all --topic people.promotions

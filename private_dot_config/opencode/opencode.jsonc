@@ -1,0 +1,91 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "anthropic": {
+      "whitelist": ["claude-opus-4-6", "claude-sonnet-4-6"]
+    },
+    "openai": {
+      "whitelist": ["gpt-5.3-codex", "gpt-5.4"]
+    }
+  },
+  "permission": {
+    "external_directory": "allow",
+    "bash": {
+      "*": "allow",
+      "git commit *": "ask",
+      "git push": "ask",
+      "git push *": "ask",
+      "git push --force *": "ask",
+      "git rebase *": "ask",
+      "git reset --hard *": "ask"
+    },
+    "read": {
+      "*": "allow",
+      "**/.env": "deny",
+      "**/.env.*": "deny",
+      "**/credentials.json": "deny",
+      "**/secrets/**": "deny",
+      "*.env": "deny",
+      "*.env.*": "deny"
+    }
+  },
+  /*
+  "opencode comes with two built-in modes: build, the default with all tools enabled. And plan, restricted mode with file modification tools disabled. You can override these built-in modes or define your own custom modes with the mode option."
+   */
+  "mode": {
+    "build": {},
+    "plan": {}
+  },
+  /*
+  You can configure the providers and models you want to use in your opencode config through the provider, model and small_model options.
+  The small_model option configures a separate model for lightweight tasks like title generation. By default, opencode tries to use a cheaper model if one is available from your provider, otherwise it falls back to your main model.
+   */
+
+  // "model": "openai/gpt-5.3-codex",
+  // "model": "anthropic/claude-opus-4-6",
+  "model": "openai/gpt-5.4",
+  "small_model": "anthropic/claude-sonnet-4-6",
+
+  /*
+  Agents are specialized AI assistants that can be launched to handle specific tasks autonomously.
+  They have access to the same tools but are designed for particular use cases.
+  */
+  "agent": {
+    "sdd-orchestrator": {
+      "mode": "all",
+      "description": "SDD Orchestrator - lean prompt, delegates phase work to skills",
+      "prompt": "SPEC-DRIVEN DEVELOPMENT (SDD) ORCHESTRATOR\n==========================================\n\nYou are the SDD orchestrator. Keep your normal assistant identity and apply SDD as an overlay.\n\nCORE OPERATING RULES:\n- Delegate-only: never do analysis/design/implementation/verification inline\n- Launch sub-agents via Task for all phase work\n- Lead only coordinates DAG state, user approvals, and concise summaries\n- /sdd-new, /sdd-continue, /sdd-ff are meta-commands handled by orchestrator (not skills)\n\nARTIFACT STORE POLICY:\n- artifact_store.mode: engram | openspec | hybrid | none\n- Default: engram when available; openspec only if user explicitly requests file artifacts; hybrid for both backends simultaneously; otherwise none\n- hybrid persists to BOTH Engram and OpenSpec. Cross-session recovery + local file artifacts. Consumes more tokens per operation.\n- In none mode, do not write project files; return inline and recommend enabling engram/openspec\n\nCOMMANDS:\n- /sdd-init -> sdd-init\n- /sdd-explore <topic> -> sdd-explore\n- /sdd-new <change> -> sdd-explore then sdd-propose\n- /sdd-continue [change] -> create next missing artifact\n- /sdd-ff [change] -> sdd-propose -> sdd-spec -> sdd-design -> sdd-tasks\n- /sdd-apply [change] -> sdd-apply in batches\n- /sdd-verify [change] -> sdd-verify\n- /sdd-archive [change] -> sdd-archive\n\nDEPENDENCY GRAPH:\nproposal -> specs --> tasks -> apply -> verify -> archive\n             ^\n             |\n           design\n\nRESULT CONTRACT:\nEach phase returns: status, executive_summary, artifacts, next_recommended, risks.\n\nSTATE AND CONVENTIONS (SOURCE OF TRUTH):\nKeep this prompt lean. Do not inline full persistence or naming specs.\nUse shared files under ~/.config/opencode/skills/_shared/:\n- engram-convention.md\n- persistence-contract.md\n- openspec-convention.md\n\nRECOVERY RULE:\nIf state is missing, recover before continuing:\n- engram: mem_search(...) then mem_get_observation(...)\n- openspec: read openspec/changes/*/state.yaml\n- none: explain state was not persisted\n\nSDD SUGGESTION RULE:\nSuggest SDD for substantial features/refactors.\nDo not force SDD for small fixes/questions.",
+      "tools": {
+        "read": true,
+        "write": true,
+        "edit": true,
+        "bash": true
+      }
+    }
+  },
+  "mcp": {
+    "context7": {
+      "enabled": true,
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "engram": {
+      "command": [
+        "engram",
+        "mcp"
+      ],
+      "enabled": true,
+      "type": "local"
+    },
+    "atlassian": {
+      "type": "local",
+      "command": ["uvx", "--python", "3.12", "mcp-atlassian"],
+      "enabled": true,
+      "environment": {
+        "JIRA_URL": "{env:JIRA_URL}",
+        "JIRA_USERNAME": "{env:JIRA_USERNAME}",
+        "JIRA_API_TOKEN": "{env:JIRA_API_TOKEN}"
+      }
+    }
+  }
+}

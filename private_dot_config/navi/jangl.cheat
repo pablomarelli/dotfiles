@@ -1,0 +1,28 @@
+% jangl, calls, filter
+
+# Calls - Create call tier
+./Taskfile command create_call_tier <vertical> '<name>' --dryrun
+
+# Calls - Create filter
+./Taskfile command create_filter <vertical> '<name>' --dryrun
+
+# Calls - Test integration
+./Taskfile command test_integration <integration_slug>
+
+# Calls - Test endpoint
+./Taskfile command test_endpoint <endpoint_slug>
+
+# Calls - Test data append
+./Taskfile command test_data_append <data_append_slug>
+
+# Calls - Test verifier
+./Taskfile command test_verifier <verifier_slug>
+
+% jangl, calls, seed
+
+# Calls - Seed test calls (creates random calls for testing)
+./Taskfile command seed_calls <count> <seed_options>
+
+$ count: echo -e "5\n10\n25\n50\n100" --- --preview "echo 'Number of calls to create'"
+$ seed_options: echo -e "\n--verbose\n--dryrun\n--verbose --dryrun\n--connected-only --verbose\n--vendor-campaign-id <id> --verbose\n--vertical-id <id> --verbose\n--site-id <id> --verbose" --- --preview "echo 'Options:\n  (empty) = create calls silently\n  --verbose = show progress\n  --dryrun = preview only\n  --connected-only = only keep matched calls\n  --vendor-campaign-id = specific vendor\n  --vertical-id = filter by vertical\n  --site-id = filter by site'"
+

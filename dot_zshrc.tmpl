@@ -1,0 +1,62 @@
+# ZSH
+
+export PATH="$HOME/.local/bin:$PATH"
+
+# History
+HISTSIZE=10000
+HISTFILE=~/.zsh_history
+SAVEHIST=$HISTSIZE
+HISTDUP=erase
+setopt appendhistory
+setopt sharehistory
+setopt hist_ignore_space
+setopt hist_ignore_all_dups
+setopt hist_save_no_dups
+setopt hist_ignore_dups
+setopt hist_find_no_dups
+
+export EDITOR='nvim'
+
+# Change Nvim tmp folder
+export TMPDIR=~/.tmp
+
+# Paths
+[ -f "$HOME/.config/zsh/paths.zsh" ] && source "$HOME/.config/zsh/paths.zsh"
+
+# Mise - using shims mode for faster shell (no hook on every prompt)
+# Use `mise activate zsh` if you need auto-switching per directory
+export PATH="$HOME/.local/share/mise/shims:$PATH"
+
+function zvm_after_init() { 
+# CLI Tools
+[ -f "$HOME/.config/zsh/cli-tools.zsh" ] && source "$HOME/.config/zsh/cli-tools.zsh"
+}
+
+# Programming languages
+[ -f "$HOME/.config/zsh/programming-languages.zsh" ] && source "$HOME/.config/zsh/programming-languages.zsh"
+
+# Oh my zsh
+[ -f "$HOME/.config/zsh/oh-my-zsh.zsh" ] && source "$HOME/.config/zsh/oh-my-zsh.zsh"
+
+# FZF Git branches
+[ -f "$HOME/.config/zsh/fzf_git_branches.zsh" ] && source "$HOME/.config/zsh/fzf_git_branches.zsh"
+
+# Aliases
+[ -f "$HOME/.config/zsh/aliases.zsh" ] && source "$HOME/.config/zsh/aliases.zsh"
+
+# Env vars
+[ -f "$HOME/.config/zsh/load_env_vars.zsh" ] && source "$HOME/.config/zsh/load_env_vars.zsh"
+
+# macOS-only: work (Jangl) config
+{{ if eq .chezmoi.os "darwin" -}}
+[ -f "$HOME/.config/zsh/jangl.zsh" ] && source "$HOME/.config/zsh/jangl.zsh"
+{{ end -}}
+
+# Prompt
+[ -f "$HOME/.config/zsh/prompt.zsh" ] && source "$HOME/.config/zsh/prompt.zsh"
+
+if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
+
+fpath+=~/.zfunc; autoload -Uz compinit; compinit
+
+zstyle ':completion:*' menu select

@@ -1,0 +1,4 @@
+% regex, nvim
+
+# Convert lead_dict to self.inbound
+s/\(self.inbound\).get(\"\(\w*\)\", \"\(.*\)\")/\1.\2.get\(\"\3\"\)

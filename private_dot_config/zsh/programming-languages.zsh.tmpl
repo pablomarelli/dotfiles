@@ -1,0 +1,16 @@
+# Golang
+export PATH="$PATH:$HOME/go/bin"
+
+{{ if eq .chezmoi.os "darwin" -}}
+# bun completions
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+# C Libraries (macOS)
+export LIBRARY_PATH=/usr/local/lib
+export C_INCLUDE_PATH=/usr/local/include
+export LD_LIBRARY_PATH=/usr/local/lib
+{{ end -}}

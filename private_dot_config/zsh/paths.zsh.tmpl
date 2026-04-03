@@ -1,0 +1,19 @@
+
+export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.cargo/bin:$PATH"
+
+# Golang
+export PATH="$PATH:$HOME/go/bin"
+
+{{ if eq .chezmoi.os "darwin" -}}
+# macOS: Homebrew PostgreSQL
+export PATH="/opt/homebrew/opt/postgresql@16/bin:$PATH"
+
+# macOS: Bootdev personal project
+export PATH="$PATH:$HOME/personal/bootdev/worldbanc/private/bin"
+{{ end -}}
+
+{{ if eq .chezmoi.os "linux" -}}
+# Linux: snap bin
+export PATH="$PATH:/snap/bin"
+{{ end -}}

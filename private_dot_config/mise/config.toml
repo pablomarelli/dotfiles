@@ -1,0 +1,92 @@
+# Mise Configuration Hierarchy
+# ============================
+# Mise searches for config files in the following order (first match wins for each setting):
+#
+# 1. .mise.toml or mise.toml in current directory (project-specific)
+# 2. .mise.toml in parent directories (traverses up to root)
+# 3. .config/mise/config.toml in XDG_CONFIG_HOME or ~/.config/mise/config.toml (global)
+# 4. /etc/mise/config.toml (system-wide)
+#
+# Settings from multiple levels are merged, with more specific (local) configs
+# overriding more general (global) ones. This allows you to:
+# - Set global tool versions here (~/.config/mise/config.toml)
+# - Override them per-project with .mise.toml in project directories
+# - Use .tool-versions files when idiomatic_version_file is enabled
+#
+# Documentation: https://mise.jd.dev/configuration.html
+#
+#
+# Python Version Management
+# =========================
+# Mise supports multiple ways to manage Python versions:
+#
+# 1. Global version (this file): Set a default Python version for all projects
+#    python = "3.13"
+#
+# 2. Project-specific version: Create .mise.toml in your project directory
+#    [tools]
+#    python = "3.11"  # This project needs Python 3.11
+#
+# 3. Multiple Python versions: Install and use multiple versions side-by-side
+#    mise install python@3.11 python@3.12 python@3.13
+#    mise use python@3.11  # Switch to 3.11 in current project
+#
+# 4. .python-version file support: Enabled via idiomatic_version_file
+#    - Create .python-version file in project with content like "3.11.5"
+#    - Mise automatically detects and uses this version
+#    - Compatible with pyenv and other Python version managers
+#
+# 5. Virtual environments: Mise works alongside venv/virtualenv
+#    - Mise sets the Python binary version
+#    - Use `python -m venv .venv` for project-specific packages
+#
+# List installed versions: mise ls python
+# Install specific version: mise install python@3.11.5
+# Set local version: mise use python@3.11 (creates .mise.toml)
+
+[settings]
+idiomatic_version_file_enable_tools = ["python"]
+
+[tools]
+node = "latest"
+jq = "latest"
+fzf = "latest"
+zoxide = "latest"
+go = "latest"
+tmux = "latest"
+bat = "latest"
+eza = "latest"
+fd = "latest"
+gh = "latest"
+lazydocker = "latest"
+lazygit = "latest"
+kubectx = "latest"
+rust = "latest"
+"cargo:starship" = "latest"
+"cargo:navi" = "latest"
+python = "3.12.4"
+"npm:sql-formatter" = "latest"
+"ubi:sst/opencode" = "latest"
+ripgrep = "latest"
+delta = "latest"
+"github:neovim/neovim" = "latest"
+k9s = "latest"
+glow = "latest"
+duf = "latest"
+xh = "latest"
+tlrc = "latest"
+tree-sitter = "latest"
+ast-grep = "latest"
+cheat = "latest"
+pipx = "latest"
+docker-cli = "latest"
+coreutils = "latest"
+usage = "latest"
+k3d = "latest"
+terragrunt = "latest"
+opentofu = "latest"
+"aqua:joshmedeski/sesh" = "latest"
+chezmoi = "2.70.0"
+"aqua:alexpasmantier/television" = "latest"
+1password-cli = "latest"
+codex = "latest"

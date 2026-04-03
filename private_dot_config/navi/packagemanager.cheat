@@ -1,0 +1,5 @@
+% Package manager
+
+# Check which package manager handles app
+mise list | grep <app_name> && brew list | grep <app_name>
+

@@ -1,0 +1,121 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "theme": "default",
+  /*
+  "opencode comes with two built-in modes: build, the default with all tools enabled. And plan, restricted mode with file modification tools disabled. You can override these built-in modes or define your own custom modes with the mode option."
+   */
+  "mode": {
+    "build": {},
+    "plan": {},
+    "read-only": {
+      "description": "Read-only mode for planning and analysis",
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": false,
+        "read": true,
+        "list": true,
+        "grep": true,
+        "glob": true,
+        "webfetch": true,
+        "todowrite": true,
+        "todoread": true,
+        "task": true
+      }
+    },
+    "code-only": {
+      "description": "Provides only code examples with comments, no explanations",
+      "model": "anthropic/claude-sonnet-4-6",
+      "prompt": "As short and concise as you can. Output only markdown code blocks with proper language syntax. Zero prose.\n\nEvery line of explanation MUST use proper comment syntax:\n- Go:  comment (two slashes)\n- Python: # comment\n- JavaScript:  comment\n\nWRONG:\n```go\nDeclare a map\nm := make(map[string]int)\n```\n\nCORRECT:\n```go\n Declare a map\nm := make(map[string]int)\n```\n\nEVERY explanation line needs  or # or /* */. NO bare text allowed in code blocks.\n\nRespond with code block only:",
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": false,
+        "read": true,
+        "list": true,
+        "grep": true,
+        "glob": true,
+        "webfetch": true,
+        "todowrite": false,
+        "todoread": false,
+        "task": false
+      }
+    }
+  },
+  /*
+  You can configure the providers and models you want to use in your opencode config through the provider, model and small_model options.
+  The small_model option configures a separate model for lightweight tasks like title generation. By default, opencode tries to use a cheaper model if one is available from your provider, otherwise it falls back to your main model.
+   */
+
+  "model": "anthropic/claude-opus-4-6",
+  "small_model": "anthropic/claude-sonnet-4-6",
+
+  /* Available Copilot models:
+    copilot/gpt-4.1-2025-04-14
+    copilot/gpt-3.5-turbo-0613
+    copilot/gpt-4o-mini-2024-07-18
+    copilot/gpt-4-0613
+    copilot/gpt-4-0125-preview
+    copilot/gpt-4o-2024-11-20
+    copilot/gpt-4o-2024-05-13
+    copilot/gpt-4o-2024-08-06
+    copilot/o3-mini-2025-01-31
+    copilot/o3-mini-paygo
+    copilot/claude-3.5-sonnet
+    copilot/claude-3.7-sonnet
+    copilot/claude-3.7-sonnet-thought
+    copilot/claude-sonnet-4
+    copilot/gemini-2.0-flash-001
+    copilot/gemini-2.5-pro
+    copilot/o4-mini-2025-04-16
+  */
+
+  /*
+  Agents are specialized AI assistants that can be launched to handle specific tasks autonomously.
+  They have access to the same tools but are designed for particular use cases.
+  */
+  "agent": {
+    "code-reviewer": {
+      "description": "Reviews code for best practices, bugs, and improvements",
+      "mode": "subagent",
+      "model": "anthropic/claude-opus-4-6",
+      "prompt": "You are a senior code reviewer. Focus on:\n- Code quality and best practices\n- Potential bugs and security issues\n- Performance optimizations\n- Readability and maintainability\n- Adherence to coding standards\n\nProvide specific, actionable feedback with line numbers when possible.",
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": false,
+        "read": true,
+        "grep": true,
+        "glob": true
+      }
+    },
+    "test-writer": {
+      "description": "Writes comprehensive tests for code",
+      "mode": "subagent",
+      "model": "anthropic/claude-opus-4-6",
+      "prompt": "You are a test automation expert. Write comprehensive tests following:\n- Unit tests for individual functions\n- Integration tests for component interactions\n- Edge cases and error conditions\n- Mock external dependencies appropriately\n\nFollow existing test patterns and ensure good coverage.",
+      "tools": {
+        "write": true,
+        "edit": true,
+        "bash": true,
+        "read": true,
+        "grep": true,
+        "glob": true
+      }
+    },
+    "bug-hunter": {
+      "description": "Searches for and identifies potential bugs in codebases",
+      "mode": "subagent", 
+      "model": "anthropic/claude-opus-4-6",
+      "prompt": "You are a bug detection specialist. Focus on identifying:\n- Common programming errors and anti-patterns\n- Memory leaks and resource management issues\n- Race conditions and concurrency problems\n- Input validation and security vulnerabilities\n- Logic errors and edge case handling\n\nProvide detailed reports with file locations and suggested fixes.",
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": true,
+        "read": true,
+        "grep": true,
+        "glob": true
+      }
+    }
+  }
+}

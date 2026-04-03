@@ -1,0 +1,47 @@
+# Ignore Mac-only configs on Linux
+{{ if ne .chezmoi.os "darwin" }}
+.config/aerospace
+.config/karabiner
+{{ end }}
+
+# Ignore Linux-only configs on Mac
+{{ if ne .chezmoi.os "linux" }}
+.config/i3
+.config/albert
+{{ end }}
+
+# Never manage tmux plugins (tpm handles them)
+.config/tmux/plugins
+
+# Managed as private git repos — clone manually on new machines
+.config/bruno
+.config/httpcollection
+.config/dbqueries
+
+# Never manage node_modules or lockfiles anywhere
+**/node_modules
+**/bun.lock
+**/package-lock.json
+
+# Never manage nvim plugin lockfile (Lazy updates this automatically)
+.config/nvim/lazy-lock.json
+
+# Never manage .env files anywhere (may contain API keys and secrets)
+**/.env
+**/.env.*
+*.env
+
+# Ignore starship backup files (only starship.toml is active)
+.config/starship/starshipbackup.toml
+.config/starship/starship-bracketed-backup.toml
+
+# Ignore macOS metadata files everywhere
+**/.DS_Store
+
+# Ignore shell cache
+.cache
+
+# Ignore karabiner auto-backups (generated automatically by karabiner)
+.config/karabiner/automatic_backups
+
+# AWS: OS-conditional content is handled inside the templates themselves

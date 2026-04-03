@@ -1,0 +1,48 @@
+[user]
+    email = {{ .work_email }}
+    name = {{ .name }}
+
+[push]
+    autoSetupRemote = true
+
+[core]
+    pager = delta
+    excludesfile = ~/.gitignore
+{{ if eq .chezmoi.os "darwin" -}}
+    hooksPath = {{ .chezmoi.homeDir }}/.githooks
+{{ end -}}
+
+[interactive]
+    diffFilter = delta --color-only
+
+[delta]
+    navigate = true    # use n and N to move between diff sections
+
+[merge]
+    conflictstyle = diff3
+
+[diff]
+    colorMoved = default
+
+{{ if eq .chezmoi.os "darwin" -}}
+[includeIf "gitdir:~/personal/**"]
+  path = ~/.gitconfig.pers
+
+[includeIf "gitdir:~/work/**"]
+  path = ~/.gitconfig.work
+
+[includeIf "gitdir:~/whatif/**"]
+  path = ~/.gitconfig.work
+{{ else -}}
+[includeIf "gitdir:~/personal/"]
+  path = ~/.gitconfig.pers
+
+[includeIf "gitdir:~/work/"]
+  path = ~/.gitconfig.work
+{{ end -}}
+
+[init]
+    defaultBranch = main
+
+[pull]
+    rebase = true

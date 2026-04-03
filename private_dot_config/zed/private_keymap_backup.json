@@ -1,0 +1,157 @@
+[
+  // Global keymaps
+  {
+    "bindings": {
+      // Pane navigation (like vim-tmux-navigator)
+      "ctrl-h": "workspace::ActivatePaneLeft",
+      "ctrl-l": "workspace::ActivatePaneRight",
+      "ctrl-k": "workspace::ActivatePaneUp",
+      "ctrl-j": "workspace::ActivatePaneDown"
+    }
+  },
+  // Vim Normal mode keymaps
+  {
+    "context": "Editor && vim_mode == normal",
+    "bindings": {
+      // Half-page scroll centered (like <C-d>zz and <C-u>zz)
+      "ctrl-d": ["workspace::SendKeystrokes", "ctrl-d z z"],
+      "ctrl-u": ["workspace::SendKeystrokes", "ctrl-u z z"],
+
+      // File explorer (like Oil.nvim)
+      "space e": "project_panel::ToggleFocus",
+
+      // Clipboard operations (yank to system clipboard)
+      "space y": ["workspace::SendKeystrokes", "\" + y"],
+      "space Y": ["workspace::SendKeystrokes", "\" + y $"],
+      "space p": ["workspace::SendKeystrokes", "\" + p"],
+
+      // Code actions
+      "space c a": "editor::ToggleCodeActions",
+      "space c j": "editor::Format",
+      "space c r": "editor::Rename",
+
+      // Git operations
+      "space g b": "git::Blame",
+      "space g d d": "git::Diff",
+
+      // Harpoon-like bookmarks (using tab switcher and pane activation)
+      "space h": "tab_switcher::Toggle",
+      "space 1": ["pane::ActivateItem", 0],
+      "space 2": ["pane::ActivateItem", 1],
+      "space 3": ["pane::ActivateItem", 2],
+      "space 4": ["pane::ActivateItem", 3],
+      "space 5": ["pane::ActivateItem", 4],
+      "space 6": ["pane::ActivateItem", 5],
+      "space 7": ["pane::ActivateItem", 6],
+      "space 8": ["pane::ActivateItem", 7],
+      "space 9": ["pane::ActivateItem", 8],
+
+      // Search (LazyVim-style telescope mappings)
+      "space space": "file_finder::Toggle",
+      "space f f": "file_finder::Toggle",
+      "space /": "pane::DeploySearch",
+      "space s g": "pane::DeploySearch",
+      "space s f": "file_finder::Toggle",
+      "space s s": "outline::Toggle",
+      "space s S": "project_symbols::Toggle",
+
+      // Buffer operations
+      "space b d": "pane::CloseActiveItem",
+      "space b D": "pane::CloseAllItems",
+
+      // Window/pane operations
+      "space w v": "pane::SplitRight",
+      "space w s": "pane::SplitDown",
+      "space w d": "pane::CloseActiveItem",
+      "space w h": "workspace::ActivatePaneLeft",
+      "space w l": "workspace::ActivatePaneRight",
+      "space w j": "workspace::ActivatePaneDown",
+      "space w k": "workspace::ActivatePaneUp",
+
+      // LSP (these are already defaults in vim mode, but explicit for clarity)
+      "g d": "editor::GoToDefinition",
+      "g D": "editor::GoToDeclaration",
+      "g r": "editor::FindAllReferences",
+      "g I": "editor::GoToImplementation",
+      "g y": "editor::GoToTypeDefinition",
+      "K": "editor::Hover",
+
+      // Diagnostics
+      "space x x": "diagnostics::Deploy",
+      "] d": "editor::GoToDiagnostic",
+      "[ d": "editor::GoToPrevDiagnostic",
+
+      // Quick commands
+      "space q q": "workspace::CloseWindow",
+
+      // Undotree-like (undo history not available, but we can map undo/redo)
+      "space j": "pane::GoBack"
+    }
+  },
+  // Vim Visual mode keymaps
+  {
+    "context": "Editor && vim_mode == visual",
+    "bindings": {
+      // Move lines up/down (like K/J in visual mode)
+      "shift-j": "editor::MoveLineDown",
+      "shift-k": "editor::MoveLineUp",
+
+      // Clipboard operations (yank to system clipboard)
+      "space y": ["workspace::SendKeystrokes", "\" + y"],
+      "space p": ["workspace::SendKeystrokes", "\" + p"],
+      "space P": ["workspace::SendKeystrokes", "\" _ d P"]
+    }
+  },
+  // Insert mode
+  {
+    "context": "Editor && vim_mode == insert",
+    "bindings": {
+      // Quick escape
+      "j k": "vim::NormalBefore"
+    }
+  },
+  // Project panel (file explorer)
+  {
+    "context": "ProjectPanel && not_editing",
+    "bindings": {
+      // Navigate with vim keys (already built-in but explicit)
+      "j": "menu::SelectNext",
+      "k": "menu::SelectPrev",
+      "l": "project_panel::ExpandSelectedEntry",
+      "h": "project_panel::CollapseSelectedEntry",
+      "enter": "project_panel::Open",
+      "o": "project_panel::Open",
+      // File operations
+      "a": "project_panel::NewFile",
+      "shift-a": "project_panel::NewDirectory",
+      "r": "project_panel::Rename",
+      "d": "project_panel::Trash",
+      "x": "project_panel::Cut",
+      "y": "project_panel::Copy",
+      "p": "project_panel::Paste",
+      // Close panel
+      "q": "workspace::ToggleLeftDock",
+      "escape": "menu::Cancel"
+    }
+  },
+  // Tab switcher (harpoon-like menu)
+  {
+    "context": "TabSwitcher",
+    "bindings": {
+      "j": "menu::SelectNext",
+      "k": "menu::SelectPrev",
+      "ctrl-j": "menu::SelectNext",
+      "ctrl-k": "menu::SelectPrev"
+    }
+  },
+  // Dock navigation with ctrl-w
+  {
+    "context": "Dock",
+    "bindings": {
+      "ctrl-w h": "workspace::ActivatePaneLeft",
+      "ctrl-w l": "workspace::ActivatePaneRight",
+      "ctrl-w k": "workspace::ActivatePaneUp",
+      "ctrl-w j": "workspace::ActivatePaneDown"
+    }
+  }
+]

@@ -1,0 +1,37 @@
+# AWS Config - managed by chezmoi
+# Non-secret configuration (ARNs, regions, profiles)
+# OS-conditional: macOS and Linux sections are separate.
+
+{{ if eq .chezmoi.os "darwin" -}}
+[profile production-eks]
+source_profile = production
+role_arn = arn:aws:iam::436481353247:role/KubeAdmin
+region=us-east-1
+output=text
+
+[profile development-eks]
+source_profile = development
+role_arn = arn:aws:iam::063019420782:role/KubeAdmin
+region=us-east-1
+output=text
+
+[profile torchmark-eks]
+source_profile = torchmark
+role_arn = arn:aws:iam::400554567716:role/KubeAdmin
+region=us-east-1
+output=text
+
+[profile jobnation-eks]
+source_profile = jobnation-prod
+role_arn = arn:aws:iam::076890701197:role/KubeAdmin
+mfa_serial = arn:aws:iam::076890701197:mfa/jobnation.prod.bw
+{{ end -}}
+
+{{ if eq .chezmoi.os "linux" -}}
+# TODO: add Linux-specific AWS profiles here
+# Example:
+# [profile my-linux-profile]
+# source_profile = default
+# role_arn = arn:aws:iam::123456789:role/MyRole
+# region=us-east-1
+{{ end -}}

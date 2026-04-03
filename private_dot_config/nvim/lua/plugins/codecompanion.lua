@@ -1,0 +1,54 @@
+return {
+  -- "olimorris/codecompanion.nvim",
+  -- dependencies = {
+  --   "nvim-lua/plenary.nvim",
+  --   "nvim-treesitter/nvim-treesitter",
+  --   -- "hrsh7th/nvim-cmp",
+  --   {
+  --     "stevearc/dressing.nvim",
+  --     opts = {},
+  --   },
+  --   "nvim-telescope/telescope.nvim",
+  -- },
+  -- opts = {
+  --   display = {
+  --     diff = {
+  --       provider = "mini_diff",
+  --     },
+  --   },
+  --   -- log_level = "DEBUG",
+  --   strategies = {
+  --     chat = {
+  --       adapter = "copilot",
+  --     },
+  --     inline = {
+  --       adapter = "copilot",
+  --     },
+  --     agent = {
+  --       adapter = "copilot",
+  --     },
+  --   },
+  --   adapters = {
+  --     copilot = function()
+  --       return require("codecompanion.adapters").extend("copilot", {
+  --         schema = {
+  --           model = {
+  --             default = "claude-3.7-sonnet",
+  --           },
+  --         },
+  --       })
+  --     end,
+  --   },
+  -- },
+  -- config = function(_, opts)
+  --   require("codecompanion").setup(opts)
+  --   -- Define your keymaps here
+  --   -- vim.keymap.set("n", "<leader>ac", "<cmd>CodeCompanionChat<cr>", { silent = true, desc = "Toggle CodeCompanion" })
+  --   -- vim.keymap.set("v", "<leader>ac", "<cmd>CodeCompanionChat<cr>", { silent = true, desc = "Toggle CodeCompanion" })
+  --   vim.keymap.set("n", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
+  --   vim.keymap.set("v", "<C-a>", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
+  --   vim.keymap.set("v", "ga", "<cmd>CodeCompanionAdd<cr>", { noremap = true, silent = true })
+  --   -- Expand 'cc' into 'CodeCompanion' in the command line
+  --   vim.cmd([[cabbrev cc CodeCompanion]])
+  -- end,
+}

@@ -1,0 +1,25 @@
+theme = Rose Pine
+font-family = JetBrains Mono
+font-style = Bold
+font-thicken = true
+
+mouse-hide-while-typing = true
+window-decoration = true
+
+macos-option-as-alt = true
+
+auto-update-channel = tip
+
+scrollback-limit = 500000000
+
+custom-shader = /Users/pablomarelli/.config/ghostty/shaders/cursor_smear.glsl
+# custom-shader = /Users/pablomarelli/.config/ghostty/shaders/cursor_blaze.glsl
+# custom-shader = /Users/pablomarelli/.config/ghostty/shaders/cursor_frozen.glsl
+
+# Let terminal apps write to local clipboard via OSC52
+clipboard-write = allow
+
+# Optional: keep reads guarded
+clipboard-read = allow
+
+# background-opacity = 0.8

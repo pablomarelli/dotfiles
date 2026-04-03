@@ -1,0 +1,189 @@
+-- return {
+--   "yetone/avante.nvim",
+--   -- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
+--   -- ⚠️ must add this setting! ! !
+--   build = vim.fn.has("win32") ~= 0
+--       and "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false"
+--       or "make",
+--   event = "VeryLazy",
+--   version = false, -- Never set this value to "*"! Never!
+--   ---@module 'avante'
+--   ---@type avante.Config
+--   opts = {
+--     -- add any opts here
+--     -- this file can contain specific instructions for your project
+--     instructions_file = "avante.md",
+--     -- for example
+--     provider = "claude",
+--     providers = {
+--       claude = {
+--         endpoint = "https://api.anthropic.com",
+--         model = "claude-sonnet-4-5",
+--         timeout = 30000, -- Timeout in milliseconds
+--           -- extra_request_body = {
+--           --   temperature = 0.75,
+--           --   max_tokens = 20480,
+--           -- },
+--       },
+--       moonshot = {
+--         endpoint = "https://api.moonshot.ai/v1",
+--         model = "kimi-k2-0711-preview",
+--         timeout = 30000, -- Timeout in milliseconds
+--         extra_request_body = {
+--           temperature = 0.75,
+--           max_tokens = 32768,
+--         },
+--       },
+--     },
+--   },
+--   dependencies = {
+--     "nvim-lua/plenary.nvim",
+--     "MunifTanjim/nui.nvim",
+--     --- The below dependencies are optional,
+--     -- "nvim-mini/mini.pick", -- for file_selector provider mini.pick
+--     "nvim-telescope/telescope.nvim", -- for file_selector provider telescope
+--     "hrsh7th/nvim-cmp", -- autocompletion for avante commands and mentions
+--     -- "ibhagwan/fzf-lua", -- for file_selector provider fzf
+--     -- "stevearc/dressing.nvim", -- for input provider dressing
+--     "folke/snacks.nvim", -- for input provider snacks
+--     "nvim-tree/nvim-web-devicons", -- or echasnovski/mini.icons
+--     "zbirenbaum/copilot.lua", -- for providers='copilot'
+--     {
+--       -- support for image pasting
+--       "HakonHarnes/img-clip.nvim",
+--       event = "VeryLazy",
+--       opts = {
+--         -- recommended settings
+--         default = {
+--           embed_image_as_base64 = false,
+--           prompt_for_file_name = false,
+--           drag_and_drop = {
+--             insert_mode = true,
+--           },
+--           -- required for Windows users
+--           use_absolute_path = true,
+--         },
+--       },
+--     },
+--     {
+--       -- Make sure to set this up properly if you have lazy=true
+--       'MeanderingProgrammer/render-markdown.nvim',
+--       opts = {
+--         file_types = { "markdown", "Avante" },
+--       },
+--       ft = { "markdown", "Avante" },
+--     },
+--   },
+-- }
+return {
+--   "yetone/avante.nvim",
+--   -- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
+--   build = "make", -- ⚠️ must add this line! ! !
+--   -- build = "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false" -- for windows
+--   event = "VeryLazy",
+--   version = false, -- Never set this value to "*"! Never!
+--   ---@module 'avante'
+--   ---@type avante.Config
+--   opts = {
+--     input = {
+--       provider = "snacks",
+--       provider_opts = {
+--         -- Additional snacks.input options
+--         title = "Avante Input",
+--         icon = " ",
+--       },
+--     },
+--     mode = "agentic",
+--     -- provider = "copilot-claude-sonnet-4",
+--     -- provider = "copilot-gemini-2.0-flash-001",
+--     -- provider = "copilot",
+--     provider = "claude",
+--     providers = {
+--       claude = {
+--         endpoint = "https://api.anthropic.com",
+--         model = "claude-sonnet-4-20250514",
+--         timeout = 30000, -- Timeout in milliseconds
+--       },
+--       copilot = {
+--         model = "gpt-4o",
+--         timeout = 30000,
+--       },
+--     },
+--     -- MCP HUB + File Context
+--     system_prompt = function()
+--       local hub = require("mcphub").get_hub_instance()
+--       local mcp_prompt = hub and hub:get_active_servers_prompt() or ""
+--
+--       -- Add current file context
+--       local buf = vim.api.nvim_get_current_buf()
+--       local filename = vim.api.nvim_buf_get_name(buf)
+--       local filetype = vim.bo[buf].filetype
+--
+--       local context_prompt = ""
+--       if filename ~= "" then
+--         local relative_path = vim.fn.fnamemodify(filename, ":~:.")
+--         context_prompt = string.format(
+--           "\n\nCurrent file context:\n- File: %s\n- Type: %s\n",
+--           relative_path,
+--           filetype ~= "" and filetype or "unknown"
+--         )
+--       end
+--
+--       return mcp_prompt .. context_prompt
+--     end,
+--     -- Using function prevents requiring mcphub before it's loaded
+--     custom_tools = function()
+--       return {
+--         require("mcphub.extensions.avante").mcp_tool(),
+--       }
+--     end,
+--     web_search_engine = {
+--       provider = "google",
+--     },
+--     windows = {
+--       ask = {
+--         start_insert = true,
+--         height = 100,
+--       },
+--     },
+--   },
+--   dependencies = {
+--     "nvim-treesitter/nvim-treesitter",
+--     "nvim-lua/plenary.nvim",
+--     "MunifTanjim/nui.nvim",
+--     --- The below dependencies are optional,
+--     -- "nvim-mini/mini.pick", -- for file_selector provider mini.pick
+--     "nvim-telescope/telescope.nvim", -- for file_selector provider telescope
+--     "hrsh7th/nvim-cmp", -- autocompletion for avante commands and mentions
+--     -- "ibhagwan/fzf-lua", -- for file_selector provider fzf
+--     -- "stevearc/dressing.nvim", -- for input provider dressing
+--     "folke/snacks.nvim", -- for input provider snacks
+--     "nvim-tree/nvim-web-devicons", -- or nvim-mini/mini.icons
+--     "zbirenbaum/copilot.lua", -- for providers='copilot'
+--     {
+--       -- support for image pasting
+--       "HakonHarnes/img-clip.nvim",
+--       event = "VeryLazy",
+--       opts = {
+--         -- recommended settings
+--         default = {
+--           embed_image_as_base64 = false,
+--           prompt_for_file_name = false,
+--           drag_and_drop = {
+--             insert_mode = true,
+--           },
+--           -- required for Windows users
+--           use_absolute_path = true,
+--         },
+--       },
+--     },
+--     {
+--       -- Make sure to set this up properly if you have lazy=true
+--       "MeanderingProgrammer/render-markdown.nvim",
+--       opts = {
+--         file_types = { "markdown", "Avante" },
+--       },
+--       ft = { "markdown", "Avante" },
+--     },
+--   },
+}

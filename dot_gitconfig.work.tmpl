@@ -1,0 +1,13 @@
+[user]
+  email = {{ .work_email }}
+  name = {{ .name }}
+
+[github]
+  user = "pablomarelli-wm"
+
+[core]
+{{ if eq .chezmoi.os "darwin" -}}
+  sshCommand = "ssh -i ~/.ssh/whatif-wimgmac"
+{{ else -}}
+  sshCommand = "ssh -i ~/.ssh/whatif"
+{{ end -}}
