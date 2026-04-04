@@ -65,10 +65,6 @@ vim.fn.setreg("l", "yoprint(f'pa: {}hp'")
 
 vim.g.conceallevel = 0
 
--- Configure borders for floating windows
-vim.lsp.handlers["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, { border = "rounded" })
-vim.lsp.handlers["textDocument/signatureHelp"] = vim.lsp.with(vim.lsp.handlers.signature_help, { border = "rounded" })
-
 -- Diagnostic configuration with borders
 vim.diagnostic.config({
   float = { border = "rounded" }

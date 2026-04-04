@@ -78,10 +78,6 @@ vim.keymap.set("x", "<leader>P", '"_dP', { noremap = true, silent = true, desc =
 -- vim.fn.setreg("l", "yoprint(f'pa: {}hp'")
 --
 
-vim.keymap.set({ "n", "x" }, "<leader>ca", function()
-	require("tiny-code-action").code_action()
-end, { noremap = true, silent = true })
-
 -- Diffview keymaps
 vim.keymap.set("n", "<leader>gdf", "<cmd>DiffviewFileHistory %<CR>", 
   { noremap = true, silent = true, desc = "Git file history (diffview)" })

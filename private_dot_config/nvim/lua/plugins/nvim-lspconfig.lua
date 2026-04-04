@@ -7,6 +7,25 @@ return {
       border = "rounded",
     },
     servers = {
+      ["*"] = {
+        keys = {
+          { "<leader>ca", false, mode = { "n", "x" } },
+          { "K", function() vim.lsp.buf.hover({ border = "rounded" }) end, desc = "Hover" },
+          {
+            "gK",
+            function() vim.lsp.buf.signature_help({ border = "rounded" }) end,
+            desc = "Signature Help",
+            has = "signatureHelp",
+          },
+          {
+            "<c-k>",
+            function() vim.lsp.buf.signature_help({ border = "rounded" }) end,
+            mode = "i",
+            desc = "Signature Help",
+            has = "signatureHelp",
+          },
+        },
+      },
       -- -- pylsp
       -- pylsp = {
       --   settings = {
