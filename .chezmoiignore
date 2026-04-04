@@ -38,6 +38,9 @@
 # Ignore macOS metadata files everywhere
 **/.DS_Store
 
+# Repo files — not deployed to home directory
+README.md
+
 # Ignore shell cache
 .cache
 
