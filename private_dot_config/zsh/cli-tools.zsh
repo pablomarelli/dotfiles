@@ -5,11 +5,14 @@
 # autoload -Uz compinit && compinit
 
 # FZF (cached for faster startup)
+mkdir -p "$HOME/.cache/zsh"
 _fzf_cache="$HOME/.cache/zsh/fzf_init.zsh"
-if [[ ! -f "$_fzf_cache" ]] || [[ $(which fzf) -nt "$_fzf_cache" ]]; then
-  fzf --zsh > "$_fzf_cache" 2>/dev/null
+if command -v fzf >/dev/null 2>&1; then
+  if [[ ! -f "$_fzf_cache" ]] || [[ "$(command -v fzf)" -nt "$_fzf_cache" ]]; then
+    fzf --zsh > "$_fzf_cache" 2>/dev/null
+  fi
+  [[ -f "$_fzf_cache" ]] && source "$_fzf_cache"
 fi
-source "$_fzf_cache"
 
 # export FZF_CTRL_R_OPTS='--tmux bottom,60% --height 60% --border top'
 
@@ -41,17 +44,19 @@ export FZF_DEFAULT_OPTS="
 # ZOxide (cached for faster startup)
 export _ZO_ECHO=1
 _zoxide_cache="$HOME/.cache/zsh/zoxide_init.zsh"
-if [[ ! -f "$_zoxide_cache" ]] || [[ $(which zoxide) -nt "$_zoxide_cache" ]]; then
-  zoxide init zsh > "$_zoxide_cache" 2>/dev/null
+if command -v zoxide >/dev/null 2>&1; then
+  if [[ ! -f "$_zoxide_cache" ]] || [[ "$(command -v zoxide)" -nt "$_zoxide_cache" ]]; then
+    zoxide init zsh > "$_zoxide_cache" 2>/dev/null
+  fi
+  [[ -f "$_zoxide_cache" ]] && source "$_zoxide_cache"
 fi
-source "$_zoxide_cache"
 
 # Navi widget (cached for faster startup)
 _navi_cache="$HOME/.cache/zsh/navi_init.zsh"
-if [[ ! -f "$_navi_cache" ]] || [[ $(which navi) -nt "$_navi_cache" ]]; then
-  navi widget zsh > "$_navi_cache" 2>/dev/null
+if command -v navi >/dev/null 2>&1; then
+  if [[ ! -f "$_navi_cache" ]] || [[ "$(command -v navi)" -nt "$_navi_cache" ]]; then
+    navi widget zsh > "$_navi_cache" 2>/dev/null
+  fi
+  [[ -f "$_navi_cache" ]] && source "$_navi_cache"
 fi
-source "$_navi_cache"
-
-
 

@@ -25,6 +25,7 @@ APT_PKGS=(
   build-essential # make, libc-dev, etc. (needed by rust/python builds)
   curl            # needed to install mise
   wget            # general download tool
+  software-properties-common # add-apt-repository
   xclip           # clipboard support (terminal/nvim)
   xdg-utils       # xdg-open etc.
 )
@@ -42,31 +43,48 @@ for pkg in "${APT_PKGS[@]}"; do
   fi
 done
 
-# ── Ghostty (community .deb installer for Ubuntu/Debian) ─────────────────────
-if ! command_exists ghostty; then
-  echo -e "${YELLOW}→${NC} Installing ghostty..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh)"
-else
-  echo -e "${GREEN}✓${NC} ghostty already installed"
-fi
+if [[ "${DOTFILES_HEADLESS:-}" != "1" ]]; then
+  # ── Ghostty (community .deb installer for Ubuntu/Debian) ───────────────────
+  if ! command_exists ghostty; then
+    echo -e "${YELLOW}→${NC} Installing ghostty..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh)"
+  else
+    echo -e "${GREEN}✓${NC} ghostty already installed"
+  fi
 
-# ── Alacritty (PPA, not in mise) ──────────────────────────────────────────────
-if ! command_exists alacritty; then
-  echo -e "${YELLOW}→${NC} Installing alacritty..."
-  sudo add-apt-repository ppa:aslatter/ppa -y || true
-  sudo apt update -qq
-  sudo apt install -y alacritty
+  # ── Alacritty (PPA, not in mise) ────────────────────────────────────────────
+  if ! command_exists alacritty; then
+    echo -e "${YELLOW}→${NC} Installing alacritty..."
+    sudo add-apt-repository ppa:aslatter/ppa -y || true
+    sudo apt update -qq
+    sudo apt install -y alacritty
+  else
+    echo -e "${GREEN}✓${NC} alacritty already installed"
+  fi
 else
-  echo -e "${GREEN}✓${NC} alacritty already installed"
+  echo -e "${YELLOW}→${NC} Headless mode: skipping Ghostty and Alacritty"
 fi
 
 # ── mise ──────────────────────────────────────────────────────────────────────
 if ! command_exists mise; then
   echo -e "${YELLOW}→${NC} Installing mise..."
   curl https://mise.run | sh
-  export PATH="$HOME/.local/share/mise/bin:$PATH"
+  export PATH="$HOME/.local/bin:$PATH"
 fi
 echo -e "${GREEN}✓${NC} mise installed"
+
+# Some sudo-installed packages create ~/.cache as root on fresh systems.
+mkdir -p "$HOME/.cache"
+sudo chown -R "$(id -u)":"$(id -g)" "$HOME/.cache"
+
+if [[ -z "${GITHUB_TOKEN:-}" ]] && command_exists gh; then
+  GITHUB_TOKEN="$(gh auth token 2>/dev/null || true)"
+  export GITHUB_TOKEN
+fi
+
+if [[ -z "${GITHUB_TOKEN:-}" ]]; then
+  echo -e "${YELLOW}→${NC} GITHUB_TOKEN not set; mise install may hit GitHub API rate limits"
+fi
 
 echo -e "${YELLOW}→${NC} Running mise install (this may take a while)..."
 mise install

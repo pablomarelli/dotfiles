@@ -1,0 +1,4 @@
+[data]
+name = "Test User"
+personal_email = "test@example.com"
+work_email = "test-work@example.com"
