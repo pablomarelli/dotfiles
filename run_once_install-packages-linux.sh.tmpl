@@ -83,7 +83,10 @@ if [[ -z "${GITHUB_TOKEN:-}" ]] && command_exists gh; then
 fi
 
 if [[ -z "${GITHUB_TOKEN:-}" ]]; then
-  echo -e "${YELLOW}→${NC} GITHUB_TOKEN not set; mise install may hit GitHub API rate limits"
+  echo -e "${RED}✗${NC} GITHUB_TOKEN is required for the first bootstrap on a fresh machine."
+  echo "   GitHub-backed mise tools will hit API rate limits without it."
+  echo "   Set GITHUB_TOKEN before running chezmoi apply, or install/authenticate gh first."
+  exit 1
 fi
 
 echo -e "${YELLOW}→${NC} Running mise install (this may take a while)..."
