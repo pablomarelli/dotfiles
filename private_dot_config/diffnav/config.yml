@@ -1,6 +1,6 @@
 ui:
   # Hide the header to get more screen space for diffs
-  hideHeader: true
+  hideHeader: false
 
   # Hide the footer (keybindings help)
   hideFooter: false

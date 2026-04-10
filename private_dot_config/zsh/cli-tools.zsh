@@ -5,14 +5,16 @@
 # autoload -Uz compinit && compinit
 
 # FZF (cached for faster startup)
-mkdir -p "$HOME/.cache/zsh"
-_fzf_cache="$HOME/.cache/zsh/fzf_init.zsh"
-if command -v fzf >/dev/null 2>&1; then
-  if [[ ! -f "$_fzf_cache" ]] || [[ "$(command -v fzf)" -nt "$_fzf_cache" ]]; then
-    fzf --zsh > "$_fzf_cache" 2>/dev/null
-  fi
-  [[ -f "$_fzf_cache" ]] && source "$_fzf_cache"
-fi
+# mkdir -p "$HOME/.cache/zsh"
+# _fzf_cache="$HOME/.cache/zsh/fzf_init.zsh"
+# if command -v fzf >/dev/null 2>&1; then
+#   if [[ ! -f "$_fzf_cache" ]] || [[ "$(command -v fzf)" -nt "$_fzf_cache" ]]; then
+#     fzf --zsh > "$_fzf_cache" 2>/dev/null
+#   fi
+#   [[ -f "$_fzf_cache" ]] && source "$_fzf_cache"
+# fi
+
+eval "$(tv init zsh)"
 
 # export FZF_CTRL_R_OPTS='--tmux bottom,60% --height 60% --border top'
 

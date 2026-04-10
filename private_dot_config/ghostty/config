@@ -8,8 +8,6 @@ window-decoration = true
 
 macos-option-as-alt = true
 
-auto-update-channel = tip
-
 scrollback-limit = 500000000
 
 custom-shader = /Users/pablomarelli/.config/ghostty/shaders/cursor_smear.glsl
