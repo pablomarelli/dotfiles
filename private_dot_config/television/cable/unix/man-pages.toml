@@ -1,0 +1,27 @@
+[metadata]
+name = "man-pages"
+description = "Browse and preview system manual pages"
+requirements = [ "apropos", "man",]
+
+[source]
+command = "apropos ."
+
+[preview]
+command = "man '{0}'"
+
+[keybindings]
+enter = "actions:open"
+
+[ui]
+layout = "portrait"
+
+[preview.env]
+MANWIDTH = "80"
+
+[actions.open]
+description = "Open the selected man page in the system pager"
+command = "man '{0}'"
+mode = "execute"
+
+[ui.preview_panel]
+header = "{0}"

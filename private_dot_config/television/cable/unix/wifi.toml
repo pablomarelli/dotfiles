@@ -1,0 +1,16 @@
+[metadata]
+name = "wifi"
+description = "List and connect to preferred Wi-Fi networks on macOS"
+requirements = [ "networksetup",]
+
+[source]
+command = "networksetup -listpreferredwirelessnetworks en0 2>/dev/null | tail -n +2 | sed 's/^[[:space:]]*//' | grep -v '^$'"
+output = "{}"
+
+[preview]
+command = "printf 'Selected SSID: %s\n\n' '{}' && networksetup -getairportpower en0 && printf '\n' && networksetup -getairportnetwork en0"
+
+[actions.connect]
+description = "Connect to the selected preferred network"
+command = "networksetup -setairportnetwork en0 '{}'"
+mode = "execute"
