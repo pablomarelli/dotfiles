@@ -21,10 +21,21 @@ role_arn = arn:aws:iam::400554567716:role/KubeAdmin
 region=us-east-1
 output=text
 
+# [profile jobnation-eks]
+# source_profile = jobnation-prod
+# role_arn = arn:aws:iam::076890701197:role/KubeAdmin
+# mfa_serial = arn:aws:iam::076890701197:mfa/jobnation.prod.bw
+
+[profile jobnation-prod-mfa]
+region=us-east-1
+output=json
+credential_process = /Users/pablomarelli/.local/bin/aws-bw-credential-process --source-profile jobnation-prod --mfa-serial arn:aws:iam::076890701197:mfa/jobnation.prod.bw --cache-name jobnation-prod-mfa
+
 [profile jobnation-eks]
-source_profile = jobnation-prod
+source_profile = jobnation-prod-mfa
 role_arn = arn:aws:iam::076890701197:role/KubeAdmin
-mfa_serial = arn:aws:iam::076890701197:mfa/jobnation.prod.bw
+region=us-east-1
+output=text:w
 {{ end -}}
 
 {{ if eq .chezmoi.os "linux" -}}

@@ -59,4 +59,7 @@ if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)
 
 fpath+=~/.zfunc; autoload -Uz compinit; compinit
 
+# compinit resets TAB, so rebind it after completion initializes.
+bindkey '^I' tv-smart-autocomplete
+
 zstyle ':completion:*' menu select

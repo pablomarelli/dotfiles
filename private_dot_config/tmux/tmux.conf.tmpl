@@ -87,32 +87,36 @@ set -g @plugin 'omerxx/tmux-floax'
 # set -g @thumbs-key 's'
 # set -g @thumbs-command 'echo -n {} | pbcopy'
 
-# # Themes - PowerKit (replaces tmux-tokyo-night)
-# set -g @plugin 'fabioluciano/tmux-powerkit'
-#
-# # PowerKit configuration
-# set -g @powerkit_theme "tokyo-night"
-# set -g @powerkit_theme_variant "storm"
-# set -g @powerkit_plugins "git, cpu, memory, wifi, network, vpn, volume, packages, cloud, kubernetes"  # No datetime or battery
-# set -g @powerkit_separator_style "normal"
-# # Different style for edge separators
-# set -g @powerkit_edge_separator_style "flame"
-# set -g @powerkit_left_separator ''
-# set -g @powerkit_right_separator ''
-#
-# # Single line layout (default)
-# set -g @powerkit_bar_layout "single"
-# # Double line layout (session on top, plugins on bottom)
-# # set -g @powerkit_bar_layout "double"
-#
-# # Disable PowerKit keybindings and conflict warnings
-# set -g @powerkit_keybinding_conflict_action "ignore"
-# set -g @powerkit_show_options_key ""
-# set -g @powerkit_show_keybindings_key ""
-# set -g @powerkit_theme_selector_key ""
-# set -g @powerkit_cache_clear_key ""
-# set -g @powerkit_log_viewer_key ""
-# set -g @powerkit_reload_config_key ""
+# Themes - PowerKit (replaces tmux-tokyo-night)
+set -g @plugin 'fabioluciano/tmux-powerkit'
+
+# PowerKit configuration
+{{- if eq .chezmoi.os "darwin" }}
+set -g @powerkit_theme "monokai"
+{{- else }}
+set -g @powerkit_theme "tokyo-night"
+set -g @powerkit_theme_variant "storm"
+{{- end }}
+set -g @powerkit_plugins "git, cpu, memory, wifi, network, vpn, volume, packages, cloud, kubernetes"
+set -g @powerkit_separator_style "normal"
+# Different style for edge separators
+set -g @powerkit_edge_separator_style "flame"
+set -g @powerkit_left_separator ''
+set -g @powerkit_right_separator ''
+
+# Single line layout (default)
+set -g @powerkit_bar_layout "single"
+# Double line layout (session on top, plugins on bottom)
+# set -g @powerkit_bar_layout "double"
+
+# Disable PowerKit keybindings and conflict warnings
+set -g @powerkit_keybinding_conflict_action "ignore"
+set -g @powerkit_show_options_key ""
+set -g @powerkit_show_keybindings_key ""
+set -g @powerkit_theme_selector_key ""
+set -g @powerkit_cache_clear_key ""
+set -g @powerkit_log_viewer_key ""
+set -g @powerkit_reload_config_key ""
 
 # Enable focus events
 set-option -g focus-events on
