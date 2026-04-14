@@ -39,13 +39,13 @@ else
 fi
 
 # fzf-tab
-# if [[ ! -d "$ZSH_CUSTOM/plugins/fzf-tab" ]]; then
-#   echo -e "${YELLOW}→${NC} Installing fzf-tab..."
-#   git clone https://github.com/Aloxaf/fzf-tab "$ZSH_CUSTOM/plugins/fzf-tab"
-#   echo -e "${GREEN}✓${NC} fzf-tab installed"
-# else
-#   echo -e "${GREEN}✓${NC} fzf-tab already installed"
-# fi
+if [[ ! -d "$ZSH_CUSTOM/plugins/fzf-tab" ]]; then
+  echo -e "${YELLOW}→${NC} Installing fzf-tab..."
+  git clone https://github.com/Aloxaf/fzf-tab "$ZSH_CUSTOM/plugins/fzf-tab"
+  echo -e "${GREEN}✓${NC} fzf-tab installed"
+else
+  echo -e "${GREEN}✓${NC} fzf-tab already installed"
+fi
 
 # zsh-vi-mode
 if [[ ! -d "$ZSH_CUSTOM/plugins/zsh-vi-mode" ]]; then

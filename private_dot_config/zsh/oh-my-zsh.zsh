@@ -39,7 +39,7 @@ ZSH_LIB_IGNORE=(theme-and-appearance grep)
 plugins=(
   zsh-autosuggestions 
   zsh-syntax-highlighting
-  # fzf-tab
+  fzf-tab
   zsh-vi-mode
 )
 

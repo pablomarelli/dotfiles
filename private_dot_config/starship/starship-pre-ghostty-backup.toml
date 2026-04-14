@@ -2,17 +2,64 @@
 
 
 format = """
+[](color_orange)\
+$os\
+[](bg:color_yellow fg:color_orange)\
 $directory\
-$git_branch$git_status\
-$c$rust$golang$nodejs$php$java$kotlin$haskell$python\
-$kubernetes$docker_context$conda\
+[](fg:color_yellow bg:color_aqua)\
+$git_branch\
+$git_status\
+[](fg:color_aqua bg:color_blue)\
+$c\
+$rust\
+$golang\
+$nodejs\
+$php\
+$java\
+$kotlin\
+$haskell\
+$python\
+[](fg:color_blue bg:color_bg3)\
+$custom\
+$docker_context\
+$conda\
+[](fg:color_bg3)\
+[ ](fg:color_bg1)\
 $line_break$character"""
 
 right_format = """$time"""
 
-# Let Ghostty own colors so Starship works in dark and light themes.
+# Define colors - vague.nvim inspired
+palette = 'monokai'
 
-# command_timeout = 200
+command_timeout = 200
+
+[fill]
+symbol = " "
+
+# [palettes.vague]
+# color_fg0 = '#cdcdcd'
+# color_bg1 = '#1c1c24'
+# color_bg3 = '#252530'
+# color_blue = '#6e94b2'
+# color_aqua = '#9bb4bc'
+# color_green = '#7fa563'
+# color_orange = '#e0a363'
+# color_purple = '#bb9dbd'
+# color_red = '#d8647e'
+# color_yellow = '#f3be7c'
+
+[palettes.monokai]
+color_fg0 = '#f8f8f2'
+color_bg1 = '#272822'
+color_bg3 = '#3e3d32'
+color_blue = '#66d9ef'
+color_aqua = '#a1efe4'
+color_green = '#a6e22e'
+color_orange = '#fd971f'
+color_purple = '#ae81ff'
+color_red = '#f92672'
+color_yellow = '#e6db74'
 
 [aws]
 symbol = "  "
@@ -204,16 +251,17 @@ symbol = " "
 symbol = " "
 
 [kubernetes]
-disabled = false
-format = '[$symbol$context(::$namespace)]($style) '
-style = 'green'
+disabled = true
 
-[[kubernetes.contexts]]
-context_pattern = '.*(prod|production).*'
-style = 'red'
+[custom.k8s]
+command = 'kubectl config current-context | sed -E "s#.*/##"'
+format = '[[ 󱃾 $output( $namespace) ](fg:color_fg0 bg:color_bg3)]($style)'
+when = 'kubectl config current-context > /dev/null 2>&1'
+style = "bold blue"
+shell = "sh"
 
 [time]
 disabled = false
 time_format = "%T"
 format = '[$time]($style)'
-style = "bright-black"
+style = "fg:color_fg0"
