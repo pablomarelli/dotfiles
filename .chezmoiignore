@@ -47,4 +47,14 @@ README.md
 # Ignore karabiner auto-backups (generated automatically by karabiner)
 .config/karabiner/automatic_backups
 
+# Ignore most opencode files; keep only the active configs
+.config/opencode/**
+!.config/opencode/opencode.jsonc
+!.config/opencode/tui.json
+
+# Ignore most Zed files; keep only settings and keymap
+.config/zed/**
+!.config/zed/settings.json
+!.config/zed/keymap.json
+
 # AWS: OS-conditional content is handled inside the templates themselves
