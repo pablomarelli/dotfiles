@@ -1,5 +1,15 @@
 return {
   "sindrets/diffview.nvim",
+  lazy = true,
+  cmd = {
+    "DiffviewOpen",
+    "DiffviewFileHistory",
+    "DiffviewClose",
+    "DiffviewFocusFiles",
+    "DiffviewToggleFiles",
+    "DiffviewRefresh",
+    "DiffviewLog",
+  },
   opts = {
     view = {
       default = {

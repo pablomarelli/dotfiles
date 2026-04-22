@@ -1,7 +1,11 @@
 return {
   "princejoogie/dir-telescope.nvim",
-  -- telescope.nvim is a required dependency
-  requires = { "nvim-telescope/telescope.nvim" },
+  dependencies = { "nvim-telescope/telescope.nvim" },
+  lazy = true,
+  cmd = {
+    "FileInDirectory",
+    "GrepInDirectory",
+  },
   config = function()
     require("dir-telescope").setup({
       -- these are the default options set

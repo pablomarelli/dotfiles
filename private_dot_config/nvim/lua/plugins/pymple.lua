@@ -9,6 +9,13 @@ return {
       "nvim-tree/nvim-web-devicons",
     },
     build = ":PympleBuild",
+    lazy = true,
+    cmd = {
+      "PympleBuild",
+      "PympleLogs",
+      "PympleResolveImport",
+      "PympleUpdateImports",
+    },
     config = function()
       require("pymple").setup()
     end,

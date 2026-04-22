@@ -13,17 +13,7 @@ return {
     "live_grep_args",
   },
   keys = {
-    vim.keymap.set(
-      "n",
-      "<leader>fd",
-      ":Telescope dir find_files<CR>",
-      { noremap = true, silent = true, desc = "Find files in specific dir" }
-    ),
-    vim.keymap.set(
-      "n",
-      "<leader>fD",
-      ":Telescope dir live_grep<CR>",
-      { noremap = true, silent = true, desc = "Grep in specific dir" }
-    ),
+    { "<leader>fd", "<cmd>FileInDirectory<cr>", desc = "Find files in specific dir" },
+    { "<leader>fD", "<cmd>GrepInDirectory<cr>", desc = "Grep in specific dir" },
   },
 }
