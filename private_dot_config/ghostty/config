@@ -1,4 +1,5 @@
-theme = light:Monokai Pro Light Sun,dark:Monokai Classic
+# theme = light:Monokai Pro Light Sun,dark:Monokai Classic
+theme = Gruvbox Dark
 font-family = JetBrains Mono
 font-style = Bold
 font-thicken = true

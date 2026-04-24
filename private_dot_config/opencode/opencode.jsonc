@@ -86,6 +86,11 @@
         "JIRA_USERNAME": "{env:JIRA_USERNAME}",
         "JIRA_API_TOKEN": "{env:JIRA_API_TOKEN}"
       }
+    },
+    "excalidraw": {
+      "enabled": true,
+      "type": "remote",
+      "url": "https://mcp.excalidraw.com",
     }
   }
 }
