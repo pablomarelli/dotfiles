@@ -31,6 +31,11 @@ description = "Connect to selected session"
 command = "sesh connect '{strip_ansi|split: :1..|join: }'"
 mode = "execute"
 
+[actions.create_session]
+description = "Create session in ~/whatif"
+command = "sesh connect ~/whatif/"
+mode = "execute"
+
 [actions.kill_session]
 description = "Kill selected tmux session (press Ctrl+r to reload)"
 command = "tmux kill-session -t '{strip_ansi|split: :1..|join: }'"
