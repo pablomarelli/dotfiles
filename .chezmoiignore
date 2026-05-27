@@ -49,6 +49,8 @@ README.md
 
 # Ignore most opencode files; keep only the active configs
 .config/opencode/**
+!.config/opencode/
+!.config/opencode/AGENTS.local.md
 !.config/opencode/opencode.jsonc
 !.config/opencode/tui.json
 
