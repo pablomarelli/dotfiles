@@ -51,7 +51,15 @@ README.md
 .config/opencode/**
 !.config/opencode/
 !.config/opencode/AGENTS.local.md
+!.config/opencode/commands/
+!.config/opencode/commands/**
 !.config/opencode/opencode.jsonc
+!.config/opencode/skills/
+!.config/opencode/skills/**
+!.config/opencode/skills-personal/
+!.config/opencode/skills-personal/**
+!.config/opencode/skills-work/
+!.config/opencode/skills-work/**
 !.config/opencode/tui.json
 
 # Ignore most Zed files; keep only settings and keymap

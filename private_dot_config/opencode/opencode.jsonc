@@ -3,6 +3,13 @@
 
   "instructions": ["AGENTS.md", "AGENTS.local.md"],
 
+  "skills": {
+    "paths": [
+      "~/.config/opencode/skills-personal",
+      "~/.config/opencode/skills-work"
+    ]
+  },
+
   // Personal overrides only. Gentle AI managed SDD agents, commands,
   // skills, context7, and engram MCP stay in opencode.json.
   // "provider": {
