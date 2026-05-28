@@ -43,6 +43,10 @@ bind -n 'M-.' switch-client -l
 # Switch to last window with Alt+, (comma)
 bind -n 'M-,' last-window
 
+# Move current window left/right (prefix + < / >)
+bind < swap-window -t -1 \; select-window -t -1
+bind > swap-window -t +1 \; select-window -t +1
+
 # Resize pane bindings (prefix + arrow keys)
 bind Up resize-pane -U 5
 bind Down resize-pane -D 5
