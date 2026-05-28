@@ -61,6 +61,9 @@ README.md
 !.config/opencode/skills-work/
 !.config/opencode/skills-work/**
 !.config/opencode/tui.json
+!.config/opencode/ntfy.env
+!.config/opencode/plugins/
+!.config/opencode/plugins/ntfy.ts
 
 # Ignore most Zed files; keep only settings and keymap
 .config/zed/**

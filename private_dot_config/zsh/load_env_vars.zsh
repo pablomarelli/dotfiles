@@ -32,4 +32,8 @@ if command -v bw >/dev/null 2>&1; then
   }
 fi
 
+if [[ -r "$HOME/.config/opencode/ntfy.env" ]]; then
+  source "$HOME/.config/opencode/ntfy.env"
+fi
+
 # if command -v 1p
