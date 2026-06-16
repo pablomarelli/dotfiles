@@ -10,6 +10,8 @@
     ]
   },
 
+  "plugin": ["/Users/pablomarelli/.config/opencode/vendor/ponytail/.opencode/plugins/ponytail.mjs"],
+
   // Personal overrides only. Gentle AI managed SDD agents, commands,
   // skills, context7, and engram MCP stay in opencode.json.
   // "provider": {
@@ -40,11 +42,6 @@
       "*.env": "deny",
       "*.env.*": "deny"
     }
-  },
-
-  "mode": {
-    "build": {},
-    "plan": {}
   },
 
   // "model": "openai/gpt-5.3-codex",

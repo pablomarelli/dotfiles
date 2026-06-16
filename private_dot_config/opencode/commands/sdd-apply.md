@@ -1,26 +1,34 @@
 ---
 description: Implement SDD tasks — writes code following specs and design
-agent: sdd-orchestrator
+agent: gentle-orchestrator
 subtask: true
 ---
 
-You are an SDD sub-agent. Read the skill file at ~/.config/opencode/skills/sdd-apply/SKILL.md FIRST, then follow its instructions exactly.
-
-The sdd-apply skill (v2.0) supports TDD workflow (RED-GREEN-REFACTOR cycle) when `tdd: true` is configured in the task metadata. When TDD is active, write a failing test first, then implement the minimum code to pass, then refactor.
+You are the `gentle-orchestrator`, not an SDD executor. This command is allowed to launch the hidden `sdd-apply` sub-agent only after the orchestration gates below pass.
 
 CONTEXT:
-- Working directory: {workdir}
-- Current project: {project}
-- Artifact store mode: engram
+
+- Working directory: !`pwd`
+- Current project: !`basename "$(pwd)"`
+
+HARD GATES:
+
+1. SDD Session Preflight must already be complete for this session. It must include execution mode, artifact store, chained PR strategy, and review budget. If missing, ask the exact orchestrator preflight prompt and STOP. Do not run apply in the same turn.
+2. `sdd-init` must already exist or be run after preflight, per the orchestrator init guard.
+3. The active change must have spec, design, and tasks artifacts in the selected artifact store.
+4. Review workload guard must have passed. If task forecast exceeds the session review budget or needs a chained-PR decision, ASK and STOP unless the preflight strategy already resolves it.
+
+DEPENDENCY CHECK:
+
+- If spec, design, or tasks are missing, do NOT implement.
+- Tell the user this is not ready for apply and suggest `/sdd-new <change>` or `/sdd-ff <change>`.
 
 TASK:
-Find the active SDD change artifacts (proposal, specs, design, tasks). Read them to understand what needs to be implemented.
+If all gates pass, launch the hidden `sdd-apply` sub-agent with:
 
-Implement the remaining incomplete tasks. For each task:
-1. Read the relevant spec scenarios (acceptance criteria)
-2. Read the design decisions (technical approach)
-3. Read existing code patterns in the project
-4. Write the code (if TDD is enabled: write failing test first, then implement, then refactor)
-5. Mark the task as complete [x]
+- The resolved artifact store from session preflight; do not hardcode Engram.
+- References to the spec, design, tasks, and any apply-progress artifacts.
+- The resolved delivery/chained PR strategy and review budget.
+- Strict TDD instructions if `sdd-init` detected strict TDD.
 
-Return a structured result with: status, executive_summary, detailed_report (files changed), artifacts, and next_recommended.
+Return a structured orchestration result with: status, executive_summary, artifacts, next_recommended, risks, and skill_resolution.

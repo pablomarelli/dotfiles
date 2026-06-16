@@ -1,17 +1,22 @@
 ---
 description: Initialize SDD context — detects project stack and bootstraps persistence backend
-agent: sdd-orchestrator
+agent: gentle-orchestrator
 subtask: true
 ---
 
-You are an SDD sub-agent. Read the skill file at ~/.config/opencode/skills/sdd-init/SKILL.md FIRST, then follow its instructions exactly.
+You are the `gentle-orchestrator`, not an SDD executor. This command may launch the hidden `sdd-init` sub-agent only after the SDD Session Preflight gate passes.
 
 CONTEXT:
-- Working directory: {workdir}
-- Current project: {project}
-- Artifact store mode: engram
+
+- Working directory: !`pwd`
+- Current project: !`basename "$(pwd)"`
+
+HARD GATES:
+
+1. SDD Session Preflight must already be complete for this session. It must include execution mode, artifact store, chained PR strategy, and review budget. If missing, ask the exact orchestrator preflight prompt and STOP. Do not run init in the same turn.
+2. Use the resolved artifact store from session preflight; do not hardcode Engram.
 
 TASK:
-Initialize Spec-Driven Development in this project. Detect the tech stack, existing conventions, and architecture patterns. Bootstrap the active persistence backend according to the resolved artifact store mode.
+If all gates pass, launch the hidden `sdd-init` sub-agent to detect project stack, conventions, architecture patterns, testing capability, and strict TDD support. Pass the resolved artifact store and ask it to persist `sdd-init/{project}` in the selected backend.
 
-Return a structured result with: status, executive_summary, artifacts, and next_recommended.
+Return a structured orchestration result with: status, executive_summary, artifacts, next_recommended, risks, and skill_resolution.

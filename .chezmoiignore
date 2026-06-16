@@ -58,8 +58,8 @@ README.md
 !.config/opencode/skills/**
 !.config/opencode/skills-personal/
 !.config/opencode/skills-personal/**
-!.config/opencode/skills-work/
-!.config/opencode/skills-work/**
+# Work skills may contain private company context; never manage them in this public repo.
+.config/opencode/skills-work/**
 !.config/opencode/tui.json
 !.config/opencode/ntfy.env
 !.config/opencode/plugins/

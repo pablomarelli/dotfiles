@@ -30,6 +30,11 @@ end, { expr = true, noremap = true })
 -- Format JSON
 vim.keymap.set("n", "<leader>cj", "<cmd>%!jq .<CR>", { noremap = true, silent = true, desc = "Format json using jq" })
 
+-- Open current file with the system handler
+vim.keymap.set("n", "<leader>ob", function()
+  vim.ui.open(vim.fn.expand("%:p"))
+end, { desc = "Open current file in browser" })
+
 -- Reload vim config
 -- vim.keymap.set("n", "<leader>r", "<cmd>luafile $MYVIMRC<CR>", { noremap = true, silent = true })
 

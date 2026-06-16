@@ -15,5 +15,6 @@ return {
   keys = {
     { "<leader>fd", "<cmd>FileInDirectory<cr>", desc = "Find files in specific dir" },
     { "<leader>fD", "<cmd>GrepInDirectory<cr>", desc = "Grep in specific dir" },
+    { "<leader>fg", "<cmd>Telescope git_status<cr>", desc = "Find git changed files" },
   },
 }
