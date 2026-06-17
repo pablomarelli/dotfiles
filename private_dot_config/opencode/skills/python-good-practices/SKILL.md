@@ -11,6 +11,8 @@ metadata:
 
 Load this skill when writing, reviewing, refactoring, or testing Python code, especially backend, CLI, automation, service, API, or domain logic.
 
+## My rules
+
 ## Hard Rules
 
 - Tests are mandatory for behavior changes. Bug fixes need regression tests; refactors must keep existing tests passing and add coverage when changed behavior is unprotected.
