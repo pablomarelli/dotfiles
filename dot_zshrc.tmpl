@@ -1,6 +1,7 @@
 # ZSH
 
-export PATH="$HOME/.local/bin:$PATH"
+# Keep PATH unique even when login shells, tools, and sourced files add the same dirs.
+typeset -U path PATH
 
 # History
 HISTSIZE=10000
@@ -58,3 +59,5 @@ function zvm_after_init() {
 if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
 
 zstyle ':completion:*' menu select
+
+typeset -U path PATH
