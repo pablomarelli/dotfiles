@@ -1,0 +1,38 @@
+#!/usr/bin/env zsh
+set -euo pipefail
+
+dry_run=0
+if [[ "${1:-}" == "--dry-run" ]]; then
+  dry_run=1
+elif [[ $# -gt 0 ]]; then
+  print -u2 "usage: ${0:t} [--dry-run]"
+  exit 64
+fi
+
+if ! command -v herdr >/dev/null 2>&1; then
+  print -u2 "herdr not found"
+  exit 127
+fi
+
+existing="$(herdr workspace list 2>/dev/null || true)"
+roots=("$HOME/whatif" "$HOME/personal")
+
+for root in "${roots[@]}"; do
+  [[ -d "$root" ]] || continue
+
+  for dir in "$root"/*(/N); do
+    label="${dir:t}"
+    # ponytail: substring duplicate check; switch to JSON parsing if labels can collide or contain quotes.
+    if [[ "$existing" == *'"label":"'"$label"'"'* ]]; then
+      print "skip $label"
+      continue
+    fi
+
+    if (( dry_run )); then
+      print "create $label -> $dir"
+    else
+      herdr workspace create --cwd "$dir" --label "$label" --no-focus
+      existing="$existing\n\"label\":\"$label\""
+    fi
+  done
+done

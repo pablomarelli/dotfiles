@@ -1,0 +1,49 @@
+#!{{ .chezmoi.homeDir }}/.local/share/mise/installs/python/3.10.20/bin/python3
+import json
+import subprocess
+from pathlib import Path
+
+
+def herdr(*args: str) -> str:
+    result = subprocess.run(("herdr", *args), text=True, capture_output=True)
+    if result.returncode != 0:
+        raise SystemExit(result.stderr.strip() or f"herdr {' '.join(args)} failed")
+    return result.stdout
+
+
+def run(*args: str, cwd: Path) -> str | None:
+    result = subprocess.run(args, cwd=cwd, text=True, capture_output=True)
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def label_for(cwd: Path) -> str:
+    top = run("git", "rev-parse", "--show-toplevel", cwd=cwd)
+    if not top:
+        return cwd.name or "~"
+
+    worktrees = run("git", "worktree", "list", "--porcelain", cwd=cwd)
+    branch = None
+    main = None
+    current = str(Path(top).resolve())
+    if worktrees:
+        active = None
+        for raw in worktrees.splitlines():
+            if raw.startswith("worktree "):
+                active = raw.removeprefix("worktree ")
+                main = main or active
+            elif active == current and raw.startswith("branch refs/heads/"):
+                branch = raw.removeprefix("branch refs/heads/")
+    if main and current != str(Path(main).resolve()) and branch:
+        return Path(branch).name
+    return Path(top).name
+
+
+def main() -> int:
+    pane = json.loads(herdr("pane", "current"))["result"]["pane"]
+    cwd = Path(pane.get("foreground_cwd") or pane.get("cwd") or Path.home()).expanduser().resolve()
+    herdr("tab", "rename", pane["tab_id"], label_for(cwd))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

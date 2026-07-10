@@ -1,0 +1,116 @@
+#!{{ .chezmoi.homeDir }}/.local/share/mise/installs/python/3.10.20/bin/python3
+import argparse
+import json
+import subprocess
+from pathlib import Path
+
+
+VIM_NAMES = {"vim", "nvim", "vimdiff", "nvimdiff"}
+
+
+def herdr(*args: str) -> str:
+    result = subprocess.run(("herdr", *args), text=True, capture_output=True)
+    if result.returncode != 0:
+        raise SystemExit(result.stderr.strip() or f"herdr {' '.join(args)} failed")
+    return result.stdout
+
+
+def load(*args: str) -> dict:
+    try:
+        return json.loads(herdr(*args))["result"]
+    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        raise SystemExit(f"cannot parse herdr {' '.join(args)} output: {exc}")
+
+
+def foreground_process(process_info: dict) -> dict | None:
+    """Return the process whose PID matches Herdr's foreground process group."""
+    process_group_id = process_info.get("foreground_process_group_id")
+    if process_group_id is None:
+        return None
+
+    return next(
+        (
+            proc
+            for proc in process_info.get("foreground_processes", [])
+            if str(proc.get("pid")) == str(process_group_id)
+        ),
+        None,
+    )
+
+
+def proc_names(process: dict | None) -> list[str]:
+    if not process:
+        return []
+
+    values = [process.get("name"), process.get("argv0")]
+    argv = process.get("argv") or []
+    if argv:
+        values.append(argv[0])
+    return [Path(value).name for value in values if value]
+
+
+def is_vim(process_info: dict) -> bool:
+    return any(name in VIM_NAMES for name in proc_names(foreground_process(process_info)))
+
+
+def route(process_info: dict, direction: str, key: str) -> tuple[str, str]:
+    if is_vim(process_info):
+        return "send-key", f"ctrl+{key}"
+    return "focus", direction
+
+
+def self_check() -> None:
+    nvim = {
+        "foreground_process_group_id": 101,
+        "foreground_processes": [{"name": "nvim", "pid": 101}],
+    }
+    assert route(nvim, "left", "h") == ("send-key", "ctrl+h"), "nvim internal split route"
+    assert route(nvim, "right", "l") == ("send-key", "ctrl+l"), "nvim edge route"
+
+    shell_with_nvim_descendant = {
+        "foreground_process_group_id": 200,
+        "foreground_processes": [
+            {"name": "zsh", "pid": 200},
+            {"name": "nvim", "pid": 201},
+        ],
+    }
+    assert route(shell_with_nvim_descendant, "down", "j") == ("focus", "down"), "non-nvim direct Herdr focus"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="tmux-navigator-style Herdr pane navigation")
+    parser.add_argument("direction", nargs="?", choices=("left", "right", "up", "down"))
+    parser.add_argument("key", nargs="?", choices=("h", "j", "k", "l"))
+    parser.add_argument("--status", action="store_true", help="show the decision without acting")
+    parser.add_argument("--self-test", action="store_true", help="run routing contract checks")
+    args = parser.parse_args()
+
+    if args.self_test:
+        self_check()
+        return 0
+    if args.direction is None or args.key is None:
+        parser.error("direction and key are required unless --self-test is used")
+
+    pane = load("pane", "current")["pane"]
+    process_info = load("pane", "process-info", "--current")["process_info"]
+    action_type, action_value = route(process_info, args.direction, args.key)
+    vim = action_type == "send-key"
+    action = f"send {action_value}" if vim else f"focus {action_value}"
+
+    if args.status:
+        print(
+            f"pane={pane['pane_id']} vim={str(vim).lower()} action={action} "
+            f"processes={','.join(proc_names(foreground_process(process_info)))}"
+        )
+        return 0
+
+    if vim:
+        herdr("pane", "send-keys", pane["pane_id"], action_value)
+    else:
+        herdr("pane", "focus", "--direction", action_value, "--current")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

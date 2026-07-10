@@ -10,11 +10,27 @@
 --   { noremap = true, silent = true, desc = "Resume" }
 -- )
 
--- Navigate between tmux panes
-vim.keymap.set("n", "<C-h>", "<cmd>TmuxNavigateLeft<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<C-l>", "<cmd>TmuxNavigateRight<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<C-j>", "<cmd>TmuxNavigateDown<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<C-k>", "<cmd>TmuxNavigateUp<CR>", { noremap = true, silent = true })
+local navigator_keys = {
+  ["<C-h>"] = { direction = "left", window = "h" },
+  ["<C-j>"] = { direction = "down", window = "j" },
+  ["<C-k>"] = { direction = "up", window = "k" },
+  ["<C-l>"] = { direction = "right", window = "l" },
+}
+
+local function navigate_herdr(direction, window)
+  if vim.fn.winnr(window) ~= vim.fn.winnr() then
+    vim.cmd("wincmd " .. window)
+    return
+  end
+
+  vim.fn.jobstart({ "herdr", "pane", "focus", "--direction", direction, "--current" }, { detach = true })
+end
+
+for key, target in pairs(navigator_keys) do
+  vim.keymap.set("n", key, function()
+    navigate_herdr(target.direction, target.window)
+  end, { silent = true, desc = "Navigate " .. target.direction })
+end
 
 -- Change inside word
 -- vim.keymap.set("n", "<CR>", "ciw", { noremap = true, silent = true })

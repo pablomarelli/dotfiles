@@ -58,6 +58,15 @@ function zvm_after_init() {
 
 if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
 
+# Rename the current Herdr tab after a successful directory change.
+autoload -Uz add-zsh-hook
+herdr_rename_tab_on_chpwd() {
+  [[ $HERDR_ENV == 1 ]] || return 0
+  command -v herdr-rename-current-tab >/dev/null 2>&1 || return 0
+  herdr-rename-current-tab >/dev/null 2>&1 || true
+}
+add-zsh-hook chpwd herdr_rename_tab_on_chpwd
+
 zstyle ':completion:*' menu select
 
 typeset -U path PATH

@@ -302,11 +302,11 @@ F = '^Built-in Retina Display$'
 
 Z = '^23MP55$'
 
-3 = '^XG2405$'
-T = '^XG2405$'
-D = '^XG2405$'
-M = '^XG2405$'
-# G = '^XG2405$'
+3 = '^LG ULTRAGEAR$'
+T = '^LG ULTRAGEAR$'
+D = '^LG ULTRAGEAR$'
+M = '^LG ULTRAGEAR$'
+# G = '^LG ULTRAGEAR$'
 
 # 1 = 1                            # Monitor sequence number from left to right. 1-based indexing
 # 2 = 'main'                       # Main monitor

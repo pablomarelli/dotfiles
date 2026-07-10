@@ -1,0 +1,23 @@
+#!{{ .chezmoi.homeDir }}/.local/share/mise/installs/python/3.10.20/bin/python3
+import json
+import subprocess
+from pathlib import Path
+
+
+def herdr(*args: str) -> str:
+    result = subprocess.run(("herdr", *args), text=True, capture_output=True)
+    if result.returncode != 0:
+        raise SystemExit(result.stderr.strip() or f"herdr {' '.join(args)} failed")
+    return result.stdout
+
+
+def main() -> int:
+    pane = json.loads(herdr("pane", "current"))["result"]["pane"]
+    cwd = Path(pane.get("foreground_cwd") or pane.get("cwd") or Path.home()).expanduser().resolve()
+    herdr("tab", "create", "--cwd", str(cwd), "--label", cwd.name or "~", "--focus")
+    subprocess.run(("{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-rename-current-tab",), check=False)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

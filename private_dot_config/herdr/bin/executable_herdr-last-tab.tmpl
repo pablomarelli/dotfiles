@@ -1,0 +1,92 @@
+#!{{ .chezmoi.homeDir }}/.local/share/mise/installs/python/3.10.20/bin/python3
+import argparse
+import json
+import subprocess
+from pathlib import Path
+
+
+CACHE = Path.home() / ".cache" / "herdr-last"
+
+
+def herdr(*args: str) -> str:
+    result = subprocess.run(("herdr", *args), text=True, capture_output=True)
+    if result.returncode != 0:
+        raise SystemExit(result.stderr.strip() or f"herdr {' '.join(args)} failed")
+    return result.stdout
+
+
+def load(*args: str) -> dict:
+    try:
+        return json.loads(herdr(*args))["result"]
+    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        raise SystemExit(f"cannot parse herdr {' '.join(args)} output: {exc}")
+
+
+def current_workspace_id() -> str:
+    workspaces = load("workspace", "list")["workspaces"]
+    current = next((w for w in workspaces if w.get("focused")), None)
+    if not current:
+        raise SystemExit("cannot detect focused workspace")
+    return current["workspace_id"]
+
+
+def tabs(workspace_id: str) -> list[dict]:
+    return load("tab", "list", "--workspace", workspace_id)["tabs"]
+
+
+def state_file(workspace_id: str) -> Path:
+    return CACHE / f"tab-{workspace_id.replace(':', '_')}"
+
+
+def read_state(path: Path) -> str | None:
+    try:
+        return path.read_text().strip() or None
+    except FileNotFoundError:
+        return None
+
+
+def write_state(path: Path, tab_id: str) -> None:
+    CACHE.mkdir(parents=True, exist_ok=True)
+    path.write_text(tab_id + "\n")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Toggle to the last Herdr tab in the current workspace.")
+    parser.add_argument("--dry-run", action="store_true", help="show the target without focusing it")
+    parser.add_argument("--status", action="store_true", help="show current stored state")
+    args = parser.parse_args()
+
+    workspace_id = current_workspace_id()
+    path = state_file(workspace_id)
+    items = tabs(workspace_id)
+    current = next((t for t in items if t.get("focused")), None)
+    if not current:
+        raise SystemExit("cannot detect focused tab")
+
+    current_id = current["tab_id"]
+    previous = read_state(path)
+    ids = {t["tab_id"] for t in items}
+    others = [t for t in items if t["tab_id"] != current_id]
+
+    # ponytail: no Herdr focus-change hook, so history updates only when this wrapper runs.
+    target = previous if previous in ids and previous != current_id else None
+    if target is None and len(others) == 1:
+        target = others[0]["tab_id"]
+
+    if args.status or args.dry_run:
+        print(f"workspace={workspace_id} current={current_id} previous={previous or '-'} target={target or '-'}")
+        if args.status:
+            return 0
+
+    if not target:
+        raise SystemExit("no previous tab recorded")
+
+    if not args.dry_run:
+        herdr("tab", "focus", target)
+        write_state(path, current_id)
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,76 @@
+#!{{ .chezmoi.homeDir }}/.local/share/mise/installs/python/3.10.20/bin/python3
+import argparse
+import json
+import subprocess
+from pathlib import Path
+
+
+CACHE = Path.home() / ".cache" / "herdr-last"
+STATE = CACHE / "workspace"
+
+
+def herdr(*args: str) -> str:
+    result = subprocess.run(("herdr", *args), text=True, capture_output=True)
+    if result.returncode != 0:
+        raise SystemExit(result.stderr.strip() or f"herdr {' '.join(args)} failed")
+    return result.stdout
+
+
+def workspaces() -> list[dict]:
+    try:
+        data = json.loads(herdr("workspace", "list"))
+        return data["result"]["workspaces"]
+    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        raise SystemExit(f"cannot parse herdr workspace list output: {exc}")
+
+
+def read_state() -> str | None:
+    try:
+        return STATE.read_text().strip() or None
+    except FileNotFoundError:
+        return None
+
+
+def write_state(workspace_id: str) -> None:
+    CACHE.mkdir(parents=True, exist_ok=True)
+    STATE.write_text(workspace_id + "\n")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Toggle to the last Herdr workspace.")
+    parser.add_argument("--dry-run", action="store_true", help="show the target without focusing it")
+    parser.add_argument("--status", action="store_true", help="show current stored state")
+    args = parser.parse_args()
+
+    items = workspaces()
+    current = next((w for w in items if w.get("focused")), None)
+    if not current:
+        raise SystemExit("cannot detect focused workspace")
+
+    current_id = current["workspace_id"]
+    previous = read_state()
+    ids = {w["workspace_id"] for w in items}
+    others = [w for w in items if w["workspace_id"] != current_id]
+
+    # ponytail: no Herdr focus-change hook, so history updates only when this wrapper runs.
+    target = previous if previous in ids and previous != current_id else None
+    if target is None and len(others) == 1:
+        target = others[0]["workspace_id"]
+
+    if args.status or args.dry_run:
+        print(f"current={current_id} previous={previous or '-'} target={target or '-'}")
+        if args.status:
+            return 0
+
+    if not target:
+        raise SystemExit("no previous workspace recorded")
+
+    if not args.dry_run:
+        herdr("workspace", "focus", target)
+        write_state(current_id)
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

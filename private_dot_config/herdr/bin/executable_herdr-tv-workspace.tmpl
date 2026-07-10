@@ -1,0 +1,248 @@
+#!{{ .chezmoi.homeDir }}/.local/share/mise/installs/python/3.10.20/bin/python3
+import argparse
+import json
+import shlex
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
+
+
+MRU_PATH = Path.home() / ".cache" / "herdr-last" / "workspace-mru.json"
+LAST_WORKSPACE_PATH = Path.home() / ".cache" / "herdr-last" / "workspace"
+PROJECT_ROOTS = (Path.home() / "whatif", Path.home() / "personal")
+ZOXIDE_ENTRY = "+ zoxide workspace..."
+
+
+def command(name: str) -> str:
+    found = shutil.which(name)
+    if not found:
+        raise SystemExit(f"{name} not found")
+    return found
+
+
+def herdr(*args: str) -> str:
+    result = subprocess.run(("herdr", *args), text=True, capture_output=True)
+    if result.returncode != 0:
+        raise SystemExit(result.stderr.strip() or f"herdr {' '.join(args)} failed")
+    return result.stdout
+
+
+def run(*args: str, cwd: Path | None = None) -> str | None:
+    result = subprocess.run(args, cwd=cwd, text=True, capture_output=True)
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def workspaces() -> list[dict]:
+    try:
+        return json.loads(herdr("workspace", "list"))["result"]["workspaces"]
+    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        raise SystemExit(f"cannot parse herdr workspace list output: {exc}")
+
+
+def load(*args: str) -> dict:
+    try:
+        return json.loads(herdr(*args))["result"]
+    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        raise SystemExit(f"cannot parse herdr {' '.join(args)} output: {exc}")
+
+
+def mru_order() -> list[str]:
+    try:
+        data = json.loads(MRU_PATH.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+    return data if isinstance(data, list) else []
+
+
+def touch_mru(workspace_id: str, valid_ids: set[str]) -> None:
+    MRU_PATH.parent.mkdir(parents=True, exist_ok=True)
+    # ponytail: picker-driven MRU; add Herdr focus hooks if Herdr exposes them later.
+    ordered = [workspace_id, *(item for item in mru_order() if item != workspace_id and item in valid_ids)]
+    MRU_PATH.write_text(json.dumps(ordered))
+
+
+def remember_previous_workspace(workspace_id: str) -> None:
+    LAST_WORKSPACE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    LAST_WORKSPACE_PATH.write_text(workspace_id + "\n")
+
+
+def sort_by_mru(items: list[dict]) -> list[dict]:
+    rank = {workspace_id: index for index, workspace_id in enumerate(mru_order())}
+    return sorted(items, key=lambda item: rank.get(item["workspace_id"], len(rank) + item.get("number", 0)))
+
+
+def line(workspace: dict) -> str:
+    label = workspace.get("label") or workspace["workspace_id"]
+    return label
+
+
+def project_dirs(existing_labels: set[str]) -> list[dict]:
+    projects = []
+    for root in PROJECT_ROOTS:
+        if not root.is_dir():
+            continue
+        for path in root.iterdir():
+            if path.is_dir() and not path.name.startswith(".") and path.name not in existing_labels:
+                projects.append({"label": path.name, "path": path})
+    return sorted(projects, key=lambda item: item["label"].lower())
+
+
+def git_label(cwd: Path) -> str:
+    top = run("git", "rev-parse", "--show-toplevel", cwd=cwd)
+    if not top:
+        return cwd.name or "~"
+
+    worktrees = run("git", "worktree", "list", "--porcelain", cwd=cwd)
+    branch = None
+    main = None
+    current = str(Path(top).resolve())
+    if worktrees:
+        active = None
+        for raw in worktrees.splitlines():
+            if raw.startswith("worktree "):
+                active = raw.removeprefix("worktree ")
+                main = main or active
+            elif active == current and raw.startswith("branch refs/heads/"):
+                branch = raw.removeprefix("branch refs/heads/")
+    if main and current != str(Path(main).resolve()) and branch:
+        return Path(branch).name
+    return Path(top).name
+
+
+def current_tab_id() -> str | None:
+    return load("pane", "current").get("pane", {}).get("tab_id")
+
+
+def rename_current_tab(cwd: Path) -> None:
+    tab_id = current_tab_id()
+    if tab_id:
+        herdr("tab", "rename", tab_id, git_label(cwd))
+
+
+def create_workspace(cwd: Path) -> str | None:
+    label = git_label(cwd)
+    herdr("workspace", "create", "--cwd", str(cwd), "--label", label, "--focus")
+    rename_current_tab(cwd)
+    return next((w["workspace_id"] for w in workspaces() if (w.get("label") or w["workspace_id"]) == label), None)
+
+
+def zoxide_workspace() -> str | None:
+    if not shutil.which("zoxide"):
+        raise SystemExit("zoxide not found")
+    selected = pick_zoxide_dir()
+    if not selected:
+        return None
+    return create_workspace(Path(selected).expanduser().resolve())
+
+
+def zoxide_dirs() -> list[str]:
+    paths = set((run("zoxide", "query", "-l") or "").splitlines())
+    for root in PROJECT_ROOTS:
+        if not root.is_dir():
+            continue
+        paths.update(str(path) for path in root.iterdir() if path.is_dir() and not path.name.startswith("."))
+    return sorted(paths, key=lambda path: Path(path).name.lower())
+
+
+def pick_zoxide_dir() -> str | None:
+    return pick(zoxide_dirs(), header="Create workspace from zoxide", prompt="dir> ")
+
+
+def pick(lines: list[str], header: str = "Herdr workspaces", prompt: str = "workspace> ") -> str | None:
+    tv = shutil.which("tv") or shutil.which("television")
+    if not tv:
+        raise SystemExit("Television CLI not found: install tv or television in PATH")
+
+    with tempfile.NamedTemporaryFile("w", delete=False) as handle:
+        path = Path(handle.name)
+        handle.write("\n".join(lines) + "\n")
+
+    try:
+        result = subprocess.run(
+            (
+                tv,
+                "--source-command",
+                f"cat {shlex.quote(str(path))}",
+                "--input-header",
+                header,
+                "--input-prompt",
+                prompt,
+                "--no-remote",
+                "--no-preview",
+            ),
+            text=True,
+            stdout=subprocess.PIPE,
+        )
+    finally:
+        path.unlink(missing_ok=True)
+
+    if result.returncode != 0 or not result.stdout.strip():
+        return None
+    return result.stdout.strip()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Pick and focus a Herdr workspace with Television.")
+    parser.add_argument("--status", action="store_true", help="print available workspace rows and exit")
+    parser.add_argument("--dry-run", action="store_true", help="verify dependencies and print the current workspace")
+    args = parser.parse_args()
+
+    command("herdr")
+    items = workspaces()
+    existing_labels = {(workspace.get("label") or workspace["workspace_id"]) for workspace in items}
+    valid_ids = {workspace["workspace_id"] for workspace in items}
+    current = next((workspace["workspace_id"] for workspace in items if workspace.get("focused")), "-")
+    if current != "-":
+        touch_mru(current, valid_ids)
+    items = sort_by_mru(items)
+    projects = project_dirs(existing_labels)
+    # ponytail: labels are the lookup key; switch to a custom tv channel if duplicate names matter.
+    entries = {
+        **{line(workspace): {"type": "workspace", "workspace": workspace} for workspace in items},
+        **{project["label"]: {"type": "project", "project": project} for project in projects},
+    }
+    lines = [*entries, ZOXIDE_ENTRY]
+
+    if args.status:
+        print("\n".join(lines))
+        return 0
+
+    if args.dry_run:
+        print(f"current={current} workspaces={len(items)} projects={len(projects)} television={shutil.which('tv') or shutil.which('television') or '-'}")
+        return 0
+
+    selected = pick(lines)
+    if selected == ZOXIDE_ENTRY:
+        if current != "-":
+            remember_previous_workspace(current)
+        target = zoxide_workspace()
+        if target:
+            touch_mru(target, {workspace["workspace_id"] for workspace in workspaces()})
+        return 0
+
+    entry = entries.get(selected or "")
+    target = entry["workspace"]["workspace_id"] if entry and entry["type"] == "workspace" else None
+    if entry and entry["type"] == "project":
+        project = entry["project"]
+        herdr("workspace", "create", "--cwd", str(project["path"]), "--label", git_label(project["path"]), "--focus")
+        rename_current_tab(project["path"])
+        items = workspaces()
+        valid_ids = {workspace["workspace_id"] for workspace in items}
+        target = next((workspace["workspace_id"] for workspace in items if (workspace.get("label") or workspace["workspace_id"]) == git_label(project["path"])), None)
+    if target and target != current:
+        if current != "-":
+            remember_previous_workspace(current)
+        herdr("workspace", "focus", target)
+        try:
+            cwd = Path(load("pane", "current")["pane"].get("foreground_cwd") or Path.home())
+            rename_current_tab(cwd)
+        except (KeyError, TypeError):
+            pass
+    if target:
+        touch_mru(target, valid_ids)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
