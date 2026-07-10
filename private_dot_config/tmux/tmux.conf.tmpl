@@ -1,5 +1,10 @@
 set -g mouse on
 
+# Clipboard over SSH: use OSC52 so copying from tmux writes to the local
+# terminal clipboard (for example, a Mac terminal connected to this host).
+set -s set-clipboard on
+set -as terminal-features ',*:clipboard'
+
 # Reload tmux conf
 unbind r
 bind r source-file ~/.config/tmux/tmux.conf
@@ -60,6 +65,9 @@ set -g @plugin 'tmux-plugins/tpm' # Tmux plugin manager
 
 set -g @plugin 'tmux-plugins/tmux-sensible' # Sensible adds keybindings
 set -g @plugin 'tmux-plugins/tmux-yank' # When using vim mode you can yank into clipboard
+set -g @yank_selection_mouse 'clipboard'
+if-shell 'test -n "$SSH_TTY" || test -n "$SSH_CONNECTION"' \
+  'set -g @override_copy_command "tmux load-buffer -w -"'
 
 # Adds seamless nvim and tmux panes navigation
 set -g @plugin 'christoomey/vim-tmux-navigator'
@@ -138,8 +146,11 @@ set-option -g focus-events on
 bind-key -T prefix C-g split-window \
   "$SHELL --login -i -c 'navi --print | head -n 1 | tmux load-buffer -b tmp - ; tmux paste-buffer -p -t {last} -b tmp -d'"
 
-# Use xclip to copy and paste with the system clipboard
-bind C-c run "tmux save-buffer - | xclip -i -sel clip"
+# Copy tmux buffer to the system clipboard. Over SSH this uses OSC52 so the
+# clipboard lands on the client terminal instead of the remote Linux host.
+if-shell 'test -n "$SSH_TTY" || test -n "$SSH_CONNECTION"' \
+  'bind C-c run "tmux save-buffer - | tmux load-buffer -w -"' \
+  'bind C-c run "tmux save-buffer - | xclip -i -sel clip"'
 bind C-v run "tmux set-buffer $(xclip -o -sel clip); tmux paste-buffer"
 
 # set vi-mode
@@ -165,6 +176,11 @@ set -g @resurrect-capture-pane-contents 'on'
 # set -g @resurrect-processes 'false'
 
 run '~/.config/tmux/plugins/tpm/tpm'
+
+# Prefer tmux text selection on drag, even inside mouse-aware TUIs such as
+# opencode. The default tmux-sensible binding forwards drags to the app when it
+# has mouse support enabled, which prevents mouse selection from copying.
+bind-key -T root MouseDrag1Pane copy-mode -M
 
 # Floax rebinds C-M-d/C-M-u when opening the popup. Wrap the launcher and
 # immediately unbind those two keys so app shortcuts can use them.

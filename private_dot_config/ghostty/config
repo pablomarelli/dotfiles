@@ -11,7 +11,7 @@ macos-option-as-alt = true
 
 scrollback-limit = 500000000
 
-custom-shader = /Users/pablomarelli/.config/ghostty/shaders/cursor_smear.glsl
+custom-shader = /home/pablo/.config/ghostty/shaders/cursor_smear.glsl
 # custom-shader = /Users/pablomarelli/.config/ghostty/shaders/cursor_blaze.glsl
 # custom-shader = /Users/pablomarelli/.config/ghostty/shaders/cursor_frozen.glsl
 

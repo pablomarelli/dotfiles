@@ -38,9 +38,9 @@ ZSH_LIB_IGNORE=(theme-and-appearance grep)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
   zsh-autosuggestions 
-  zsh-syntax-highlighting
   fzf-tab
   zsh-vi-mode
+  zsh-syntax-highlighting
 )
 
 ZVM_INIT_MODE=sourcing
@@ -74,4 +74,6 @@ export EDITOR=nvim
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 # [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-source $ZSH/oh-my-zsh.sh
+if [[ -r "$ZSH/oh-my-zsh.sh" ]]; then
+  source "$ZSH/oh-my-zsh.sh"
+fi

@@ -10,6 +10,8 @@ NC='\033[0m'
 
 command_exists() { command -v "$1" >/dev/null 2>&1; }
 
+. /etc/os-release
+
 echo "==> Linux bootstrap"
 
 # ── apt packages ──────────────────────────────────────────────────────────────
@@ -25,10 +27,13 @@ APT_PKGS=(
   build-essential # make, libc-dev, etc. (needed by rust/python builds)
   curl            # needed to install mise
   wget            # general download tool
-  software-properties-common # add-apt-repository
   xclip           # clipboard support (terminal/nvim)
   xdg-utils       # xdg-open etc.
 )
+
+if [[ "$ID" == "ubuntu" ]]; then
+  APT_PKGS+=(software-properties-common) # add-apt-repository
+fi
 
 echo -e "${YELLOW}→${NC} Updating apt..."
 sudo apt update -qq
@@ -55,8 +60,10 @@ if [[ "${DOTFILES_HEADLESS:-}" != "1" ]]; then
   # ── Alacritty (PPA, not in mise) ────────────────────────────────────────────
   if ! command_exists alacritty; then
     echo -e "${YELLOW}→${NC} Installing alacritty..."
-    sudo add-apt-repository ppa:aslatter/ppa -y || true
-    sudo apt update -qq
+    if [[ "$ID" == "ubuntu" ]]; then
+      sudo add-apt-repository ppa:aslatter/ppa -y || true
+      sudo apt update -qq
+    fi
     sudo apt install -y alacritty
   else
     echo -e "${GREEN}✓${NC} alacritty already installed"
