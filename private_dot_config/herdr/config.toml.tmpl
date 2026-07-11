@@ -33,49 +33,49 @@ edit_scrollback = "alt+v"
 [[keys.command]]
 key = "ctrl+h"
 type = "shell"
-command = "{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-navigator left h"
+command = "{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-python herdr-navigator left h"
 description = "Navigate left with Neovim passthrough"
 
 [[keys.command]]
 key = "ctrl+j"
 type = "shell"
-command = "{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-navigator down j"
+command = "{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-python herdr-navigator down j"
 description = "Navigate down with Neovim passthrough"
 
 [[keys.command]]
 key = "ctrl+k"
 type = "shell"
-command = "{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-navigator up k"
+command = "{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-python herdr-navigator up k"
 description = "Navigate up with Neovim passthrough"
 
 [[keys.command]]
 key = "ctrl+l"
 type = "shell"
-command = "{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-navigator right l"
+command = "{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-python herdr-navigator right l"
 description = "Navigate right with Neovim passthrough"
 
 [[keys.command]]
 key = "prefix+c"
 type = "shell"
-command = "{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-new-tab"
+command = "{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-python herdr-new-tab"
 description = "Create a project-named tab"
 
 [[keys.command]]
 key = "prefix+o"
 type = "pane"
-command = "{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-tv-workspace"
+command = "{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-python herdr-tv-workspace"
 description = "Pick a workspace with Television"
 
 [[keys.command]]
 key = "alt+."
 type = "shell"
-command = "{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-last-workspace"
+command = "{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-python herdr-last-workspace"
 description = "Toggle to the last workspace"
 
 [[keys.command]]
 key = "alt+comma"
 type = "shell"
-command = "{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-last-tab"
+command = "{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-python herdr-last-tab"
 description = "Toggle to the last tab"
 
 [ui]

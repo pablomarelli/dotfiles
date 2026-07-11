@@ -1,0 +1,23 @@
+#!/bin/sh
+# Run Herdr helpers with their dedicated mise Python, outside project configs.
+set -eu
+
+if [ "$#" -eq 0 ]; then
+  echo "usage: herdr-python <helper> [args...]" >&2
+  exit 64
+fi
+
+if [ -x "$HOME/.local/bin/mise" ]; then
+  mise="$HOME/.local/bin/mise"
+elif [ -x "$HOME/.local/share/mise/bin/mise" ]; then
+  mise="$HOME/.local/share/mise/bin/mise"
+elif command -v mise >/dev/null 2>&1; then
+  mise="$(command -v mise)"
+else
+  echo "mise not found; run chezmoi apply again after bootstrap" >&2
+  exit 127
+fi
+
+helper="$1"
+shift
+exec "$mise" exec --fresh-env -C "$HOME" python@3.10.20 -- python3 "$HOME/.config/herdr/bin/$helper" "$@"

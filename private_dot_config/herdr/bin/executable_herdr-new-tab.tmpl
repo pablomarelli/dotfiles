@@ -1,4 +1,4 @@
-#!{{ .chezmoi.homeDir }}/.local/share/mise/installs/python/3.10.20/bin/python3
+# Invoked by herdr-python to avoid project-specific mise Python settings.
 import json
 import subprocess
 from pathlib import Path
@@ -15,7 +15,7 @@ def main() -> int:
     pane = json.loads(herdr("pane", "current"))["result"]["pane"]
     cwd = Path(pane.get("foreground_cwd") or pane.get("cwd") or Path.home()).expanduser().resolve()
     herdr("tab", "create", "--cwd", str(cwd), "--label", cwd.name or "~", "--focus")
-    subprocess.run(("{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-rename-current-tab",), check=False)
+    subprocess.run(("{{ .chezmoi.homeDir }}/.config/herdr/bin/herdr-python", "herdr-rename-current-tab"), check=False)
     return 0
 
 
