@@ -78,14 +78,24 @@ def line(workspace: dict) -> str:
 
 
 def project_dirs(existing_labels: set[str]) -> list[dict]:
-    projects = []
+    projects = [
+        {"label": path.name, "path": path}
+        for path in project_paths()
+        if path.name not in existing_labels
+    ]
+    return sorted(projects, key=lambda item: item["label"].lower())
+
+
+def project_paths() -> set[Path]:
+    paths = set()
     for root in PROJECT_ROOTS:
         if not root.is_dir():
             continue
         for path in root.iterdir():
-            if path.is_dir() and not path.name.startswith(".") and path.name not in existing_labels:
-                projects.append({"label": path.name, "path": path})
-    return sorted(projects, key=lambda item: item["label"].lower())
+            if path.is_dir() and not path.name.startswith("."):
+                paths.add(path)
+                paths.update(child for child in path.iterdir() if child.is_dir() and not child.name.startswith("."))
+    return paths
 
 
 def git_label(cwd: Path) -> str:
@@ -138,10 +148,7 @@ def zoxide_workspace() -> str | None:
 
 def zoxide_dirs() -> list[str]:
     paths = set((run("zoxide", "query", "-l") or "").splitlines())
-    for root in PROJECT_ROOTS:
-        if not root.is_dir():
-            continue
-        paths.update(str(path) for path in root.iterdir() if path.is_dir() and not path.name.startswith("."))
+    paths.update(str(path) for path in project_paths())
     return sorted(paths, key=lambda path: Path(path).name.lower())
 
 
