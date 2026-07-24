@@ -18,8 +18,9 @@
 .config/httpcollection
 .config/dbqueries
 
-# Never manage node_modules or lockfiles anywhere
+# Never manage dependency or language caches anywhere
 **/node_modules
+**/__pycache__
 **/bun.lock
 **/package-lock.json
 

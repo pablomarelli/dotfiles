@@ -1,4 +1,5 @@
 alias v=nvim
+alias diff="hunk diff"
 
 # Eza
 alias la="eza --long --header --icons --git --all --group-directories-first"

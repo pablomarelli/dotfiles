@@ -57,6 +57,9 @@ That's it. The first command deploys all configs and runs the OS-specific instal
 |---|---|
 | `~/.config/tmux/tmux.conf` | tmux config (tpm plugins not managed, installed by tpm) |
 
+### Herdr
+`prefix+o` opens the Television workspace picker.
+
 ### macOS only
 | File | Description |
 |---|---|
@@ -148,7 +151,7 @@ macOS-only (via Homebrew):
 | alacritty | Secondary terminal emulator |
 | raycast | Launcher |
 | git-crypt | Git encryption |
-| diffnav | Diff navigator |
+| hunk | Terminal diff viewer |
 | tailspin | Log highlighter |
 
 ---
