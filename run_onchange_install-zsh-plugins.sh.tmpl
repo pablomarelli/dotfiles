@@ -1,5 +1,8 @@
+{{- $profile := .install_profile | default "remote" -}}
+{{ if ne $profile "remote" -}}
 #!/usr/bin/env bash
-# Install Oh My Zsh + plugins + tpm - runs once on first chezmoi apply
+# Install Oh My Zsh + plugins + tpm for Minimal/Full profiles.
+# Re-runs when the rendered profile script changes.
 # Cross-platform (macOS + Linux)
 set -e
 
@@ -7,12 +10,22 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-echo "==> Installing Oh My Zsh and plugins"
+download_and_run() {
+  local url="$1" script
+  script="$(mktemp)"
+  trap 'rm -f "$script"' RETURN
+  curl -fsSL "$url" -o "$script"
+  sh "$script" "" --unattended
+  rm -f "$script"
+  trap - RETURN
+}
+
+echo "==> Installing Oh My Zsh and plugins for {{ $profile }} profile"
 
 # Oh My Zsh
 if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
   echo -e "${YELLOW}→${NC} Installing Oh My Zsh..."
-  sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+  download_and_run "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
   echo -e "${GREEN}✓${NC} Oh My Zsh installed"
 else
   echo -e "${GREEN}✓${NC} Oh My Zsh already installed"
@@ -70,3 +83,4 @@ echo ""
 echo -e "${GREEN}✓${NC} All plugins installed!"
 echo "  Restart zsh or run: exec zsh"
 echo "  For tmux plugins: open tmux and press prefix + I"
+{{ end -}}

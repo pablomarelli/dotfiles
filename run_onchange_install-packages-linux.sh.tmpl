@@ -1,7 +1,9 @@
-{{ if eq .chezmoi.os "linux" -}}
+{{ if eq .dotfiles_os "linux" -}}
 #!/usr/bin/env bash
-# Linux (Debian/Ubuntu) bootstrap - runs once on first chezmoi apply
+# Linux (Debian/Ubuntu) bootstrap - re-runs when this rendered profile script changes
 set -e
+PROFILE="{{ .install_profile | default "remote" }}"
+HEADLESS="{{ if or (eq (env "DOTFILES_HEADLESS") "1") .install_headless }}1{{ else }}0{{ end }}"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -9,6 +11,16 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 command_exists() { command -v "$1" >/dev/null 2>&1; }
+
+download_and_run() {
+  local url="$1" script
+  script="$(mktemp)"
+  trap 'rm -f "$script"' RETURN
+  curl -fsSL "$url" -o "$script"
+  /bin/bash "$script"
+  rm -f "$script"
+  trap - RETURN
+}
 
 . /etc/os-release
 
@@ -27,9 +39,11 @@ APT_PKGS=(
   build-essential # make, libc-dev, etc. (needed by rust/python builds)
   curl            # needed to install mise
   wget            # general download tool
-  xclip           # clipboard support (terminal/nvim)
-  xdg-utils       # xdg-open etc.
 )
+
+if [[ "$PROFILE" != "remote" ]]; then
+  APT_PKGS+=(xclip xdg-utils)
+fi
 
 if [[ "$ID" == "ubuntu" ]]; then
   APT_PKGS+=(software-properties-common) # add-apt-repository
@@ -48,11 +62,12 @@ for pkg in "${APT_PKGS[@]}"; do
   fi
 done
 
-if [[ "${DOTFILES_HEADLESS:-}" != "1" ]]; then
+if [[ "$PROFILE" != "remote" && "$HEADLESS" != "1" ]]; then
   # ── Ghostty (community .deb installer for Ubuntu/Debian) ───────────────────
   if ! command_exists ghostty; then
     echo -e "${YELLOW}→${NC} Installing ghostty..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh)"
+    download_and_run "https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh"
+    command_exists ghostty || { echo -e "${RED}✗${NC} ghostty installer completed but ghostty is not on PATH"; exit 1; }
   else
     echo -e "${GREEN}✓${NC} ghostty already installed"
   fi
@@ -68,16 +83,24 @@ if [[ "${DOTFILES_HEADLESS:-}" != "1" ]]; then
   else
     echo -e "${GREEN}✓${NC} alacritty already installed"
   fi
-else
+elif [[ "$PROFILE" != "remote" ]]; then
   echo -e "${YELLOW}→${NC} Headless mode: skipping Ghostty and Alacritty"
+else
+  echo -e "${YELLOW}→${NC} Remote profile: skipping GUI terminal installers"
 fi
 
 # ── mise ──────────────────────────────────────────────────────────────────────
 if ! command_exists mise; then
   echo -e "${YELLOW}→${NC} Installing mise..."
-  curl https://mise.run | sh
+  mise_installer="$(mktemp)"
+  trap 'rm -f "$mise_installer"' EXIT
+  curl -fsSL https://mise.run -o "$mise_installer"
+  sh "$mise_installer"
+  rm -f "$mise_installer"
+  trap - EXIT
   export PATH="$HOME/.local/bin:$PATH"
 fi
+command_exists mise || { echo -e "${RED}✗${NC} mise installer completed but mise is not on PATH"; exit 1; }
 echo -e "${GREEN}✓${NC} mise installed"
 
 # Some sudo-installed packages create ~/.cache as root on fresh systems.
@@ -89,15 +112,11 @@ if [[ -z "${GITHUB_TOKEN:-}" ]] && command_exists gh; then
   export GITHUB_TOKEN
 fi
 
-if [[ -z "${GITHUB_TOKEN:-}" ]]; then
-  echo -e "${RED}✗${NC} GITHUB_TOKEN is required for the first bootstrap on a fresh machine."
-  echo "   GitHub-backed mise tools will hit API rate limits without it."
-  echo "   Set GITHUB_TOKEN before running chezmoi apply, or install/authenticate gh first."
+echo -e "${YELLOW}→${NC} Running mise install for $PROFILE profile (this may take a while)..."
+if ! mise install; then
+  echo -e "${RED}✗${NC} mise install failed. If GitHub rate limits were involved, run 'gh auth login' or export GITHUB_TOKEN, then retry: '$HOME/.local/bin/mise install'."
   exit 1
 fi
-
-echo -e "${YELLOW}→${NC} Running mise install (this may take a while)..."
-mise install
 echo -e "${GREEN}✓${NC} mise tools installed"
 
 echo ""

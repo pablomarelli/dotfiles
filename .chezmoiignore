@@ -1,11 +1,13 @@
+{{- $profile := (env "DOTFILES_INSTALL_PROFILE" | default .install_profile | default "remote") -}}
+{{- $headless := or (eq (env "DOTFILES_HEADLESS") "1") .install_headless -}}
 # Ignore Mac-only configs on Linux
-{{ if ne .chezmoi.os "darwin" }}
+{{ if ne .dotfiles_os "darwin" }}
 .config/aerospace
 .config/karabiner
 {{ end }}
 
 # Ignore Linux-only configs on Mac
-{{ if ne .chezmoi.os "linux" }}
+{{ if ne .dotfiles_os "linux" }}
 .config/i3
 .config/albert
 {{ end }}
@@ -40,10 +42,56 @@
 **/.DS_Store
 
 # Repo files — not deployed to home directory
+.github
+install.sh
+dotfiles-plan.sh
 README.md
+secret-refs.txt
+tests
 
 # Ignore shell cache
 .cache
+
+# Install profiles are forward-management choices: moving to a smaller profile
+# stops managing these targets but does not uninstall tools or delete files.
+# Profile contract duplication is intentional: installer, ignore rules, mise, and
+# package scripts all enforce the same public bootstrap tiers from different
+# surfaces. Tests cover these lists together.
+{{ if ne $profile "full" }}
+.aws/**
+.config/aerospace/**
+.config/karabiner/**
+.config/albert/**
+.config/diffnav/**
+.config/gh-dash/**
+.config/worktrunk/**
+.config/zed/**
+.config/navi/jangl.cheat
+.config/zsh/jangl.zsh
+.gitconfig.work
+{{ end }}
+
+{{ if eq $profile "remote" }}
+.config/alacritty/**
+.config/ghostty/**
+.config/herdr/**
+.config/navi/**
+.config/starship/**
+.config/television/**
+.config/zsh/cli-tools.zsh
+.config/zsh/custom.zsh
+.config/zsh/fzf_git_branches.zsh
+.config/zsh/oh-my-zsh.zsh
+.config/zsh/programming-languages.zsh
+.config/zsh/prompt.zsh
+.p10k.zsh
+run_onchange_install-zsh-plugins.sh
+{{ end }}
+
+{{ if and (ne $profile "remote") $headless }}
+.config/alacritty/**
+.config/ghostty/**
+{{ end }}
 
 # Ignore karabiner auto-backups (generated automatically by karabiner)
 .config/karabiner/automatic_backups
@@ -62,9 +110,18 @@ README.md
 # Work skills may contain private company context; never manage them in this public repo.
 .config/opencode/skills-work/**
 !.config/opencode/tui.json
+{{ if and .include_secrets (ne (env "DOTFILES_FORCE_IGNORE_SECRETS") "1") }}
 !.config/opencode/ntfy.env
+{{ end }}
 !.config/opencode/plugins/
 !.config/opencode/plugins/ntfy.ts
+
+# Secret-backed templates are opt-in. Keep this list in sync with secret-refs.txt
+# so new 1Password-backed targets cannot render by default.
+{{ if or (not .include_secrets) (eq (env "DOTFILES_FORCE_IGNORE_SECRETS") "1") }}
+.config/opencode/ntfy.env
+.aws/credentials
+{{ end }}
 
 # Ignore most Zed files; keep only settings and keymap
 .config/zed/**

@@ -2,6 +2,10 @@
   name = "Pablo Marelli"
   personal_email = "pablo.marelli.kenny@gmail.com"
   work_email = "pablo.marelli@whatifmediagroup.com"
+  include_secrets = {{ eq (env "DOTFILES_INCLUDE_SECRETS") "1" }}
+  dotfiles_os = {{ (env "DOTFILES_TEST_OS" | default .chezmoi.os) | quote }}
+  install_profile = {{ (env "DOTFILES_INSTALL_PROFILE" | default "remote") | quote }}
+  install_headless = {{ eq (env "DOTFILES_HEADLESS") "1" }}
 
 [onepassword]
   command = "op"

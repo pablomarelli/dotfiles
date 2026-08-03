@@ -37,4 +37,6 @@ if [[ -r "$HOME/.config/opencode/ntfy.env" ]]; then
   source "$HOME/.config/opencode/ntfy.env"
 fi
 
-# if command -v 1p
+# This machine is SSH/headless-only. Force 1Password CLI to use manual
+# account sign-in instead of trying to connect to the desktop app.
+export OP_BIOMETRIC_UNLOCK_ENABLED=false
