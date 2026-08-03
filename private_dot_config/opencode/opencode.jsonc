@@ -1,27 +1,11 @@
 {
   "$schema": "https://opencode.ai/config.json",
-
-  "instructions": ["AGENTS.md", "AGENTS.local.md"],
-
+  "instructions": ["AGENTS.md"],
+  "model": "openai/gpt-5.6-sol",
+  "small_model": "openai/gpt-5.6-luna",
   "skills": {
-    "paths": [
-      "~/.config/opencode/skills-personal",
-      "~/.config/opencode/skills-work"
-    ]
+    "paths": ["~/.config/opencode/skills-work"]
   },
-
-  "plugin": ["/Users/pablomarelli/.config/opencode/vendor/ponytail/.opencode/plugins/ponytail.mjs"],
-
-  // Personal overrides only. Gentle AI managed SDD agents, commands,
-  // skills, context7, and engram MCP stay in opencode.json.
-  // "provider": {
-  //   "anthropic": {
-  //     "whitelist": ["claude-opus-4-6", "claude-sonnet-4-6"]
-  //   },
-  //   "openai": {
-  //     "whitelist": ["gpt-5.3-codex", "gpt-5.4"]
-  //   }
-  // },
   "permission": {
     "external_directory": "allow",
     "bash": {
@@ -35,21 +19,37 @@
     },
     "read": {
       "*": "allow",
+      "**/*.key": "deny",
+      "**/*.pem": "deny",
+      "**/.aws/credentials": "deny",
+      "**/.config/gh/hosts.yml": "deny",
+      "**/.credentials/**": "deny",
       "**/.env": "deny",
       "**/.env.*": "deny",
+      "**/.ssh/**": "deny",
+      "**/Library/Keychains/**": "deny",
       "**/credentials.json": "deny",
       "**/secrets/**": "deny",
       "*.env": "deny",
       "*.env.*": "deny"
     }
   },
-
-  // "model": "openai/gpt-5.3-codex",
-  // "model": "anthropic/claude-opus-4-6",
-  "model": "openai/gpt-5.5",
-  "small_model": "anthropic/claude-sonnet-4-6",
-
   "mcp": {
+    "atlassian": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "--python",
+        "3.12",
+        "mcp-atlassian"
+      ],
+      "enabled": true,
+      "environment": {
+        "JIRA_URL": "{env:JIRA_URL}",
+        "JIRA_USERNAME": "{env:JIRA_USERNAME}",
+        "JIRA_API_TOKEN": "{env:JIRA_API_TOKEN}"
+      }
+    },
     "fff": {
       "type": "local",
       "command": [
@@ -57,15 +57,34 @@
       ],
       "enabled": true
     },
-    "atlassian": {
-      "type": "local",
-      "command": ["uvx", "--python", "3.12", "mcp-atlassian"],
+    "Devops-MCP-hub": {
+      "command": [
+        "/Users/pablomarelli/.local/bin/uvx",
+        "mcp-proxy-for-aws@latest",
+        "https://mcp-devops-services-gpnvcnqr9d.gateway.bedrock-agentcore.us-east-1.amazonaws.com/mcp",
+        "--service",
+        "bedrock-agentcore",
+        "--region",
+        "us-east-1",
+        "--profile",
+        "devops-prod-sso"
+      ],
       "enabled": true,
-      "environment": {
-        "JIRA_URL": "{env:JIRA_URL}",
-        "JIRA_USERNAME": "{env:JIRA_USERNAME}",
-        "JIRA_API_TOKEN": "{env:JIRA_API_TOKEN}"
-      }
+      "type": "local"
+    },
+    "context7": {
+      "enabled": true,
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "sentry": {
+      "type": "local",
+      "command": [
+        "zsh",
+        "-lc",
+        "SENTRY_ACCESS_TOKEN=$(SENTRY_URL=\"https://sentry.jan.gl\" sentry auth token) exec npx -y @sentry/mcp-server@latest --host=sentry.jan.gl"
+      ],
+      "enabled": true
     }
   }
 }

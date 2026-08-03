@@ -11,8 +11,6 @@ metadata:
 
 Load this skill when writing, reviewing, refactoring, or testing Python code, especially backend, CLI, automation, service, API, or domain logic.
 
-## My rules
-
 ## Hard Rules
 
 - Tests are mandatory for behavior changes. Bug fixes need regression tests; refactors must keep existing tests passing and add coverage when changed behavior is unprotected.
@@ -21,6 +19,7 @@ Load this skill when writing, reviewing, refactoring, or testing Python code, es
 - Keep code typed. Add annotations to public functions, domain functions, async boundaries, and non-obvious data structures.
 - Raise or return explicit domain errors. Do not swallow exceptions unless the fallback behavior is intentional, tested, and logged.
 - Do not introduce architecture ceremony unless it reduces complexity for the current problem.
+- When Ruff is available for a Python repo, format only new Python files and Python files changed versus `master`. Do not run whole-repo formatting unless the user explicitly asks for it.
 
 ## Decision Gates
 
@@ -28,9 +27,7 @@ Load this skill when writing, reviewing, refactoring, or testing Python code, es
 | --- | --- |
 | Business rule or decision | Pure function, value object, or small domain service. |
 | I/O, DB, HTTP, queue, filesystem | Imperative adapter at the edge; keep parsing and decisions separate. |
-| Real domain complexity | Use DDD naming and boundaries around the business language. |
 | Simple script or CRUD | Stay simple; do not add aggregates, repositories, or events by default. |
-| Stateful lifecycle or framework requirement | Use a class only when it makes state ownership clearer. |
 | Async code | Keep async at I/O boundaries; do not wrap CPU-only pure logic in async. |
 
 ## Domain Modeling
@@ -56,7 +53,7 @@ Load this skill when writing, reviewing, refactoring, or testing Python code, es
 3. Keep framework handlers thin: validate input, call application/domain logic, map output.
 4. Keep persistence and API clients behind small adapters; do not leak third-party payload shapes deep into domain code.
 5. Add or update tests in the same work unit as the code change.
-6. Run formatting, linting, type checks, and tests according to the repository's configured tools.
+6. Run formatting, linting, type checks, and tests according to the repository's configured tools. For Ruff formatting, scope it to new Python files and Python diffs against `master` only.
 
 ## Output Contract
 
@@ -65,3 +62,8 @@ Report the files changed, behavior covered by tests, commands run, any verificat
 ## References
 
 - No bundled references. Follow the target repository's configured Python tools and conventions first.
+
+## Common pitfalls
+
+- If test fails because of a dependency is missing and a git worktree is active its probably because the dev env must be installed with pipenv install --dev or the specific repository command.
+

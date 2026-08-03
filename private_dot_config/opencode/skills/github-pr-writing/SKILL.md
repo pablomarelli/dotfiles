@@ -43,7 +43,6 @@ Use this exact pattern:
 ```text
 (<Jira key[, Jira key...]>) <type>: <concise outcome>
 ```
-
 Allowed types:
 
 ```text
