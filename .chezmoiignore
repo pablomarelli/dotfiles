@@ -99,6 +99,7 @@ run_onchange_install-zsh-plugins.sh
 # Ignore most opencode files; keep only the active configs
 .config/opencode/**
 !.config/opencode/
+!.config/opencode/AGENTS.md
 !.config/opencode/AGENTS.local.md
 !.config/opencode/commands/
 !.config/opencode/commands/**
