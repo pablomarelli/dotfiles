@@ -11,7 +11,7 @@ CONTEXT:
 - User request: $ARGUMENTS
 
 TASK:
-Review the GitHub pull request specified by `$ARGUMENTS` and journal the review into `/Users/pablomarelli/Documents/work-log/wiki` with synchronized Markdown and HTML PR entity records.
+Review the GitHub pull request specified by `$ARGUMENTS` and journal the review into `{{ .chezmoi.homeDir }}/Documents/work-log/wiki` with synchronized Markdown and HTML PR entity records.
 
 INPUT FORMAT:
 Accept a GitHub PR URL, `owner/repo#123`, `owner/repo 123`, or bare `123` when `Current GitHub repo` is available.

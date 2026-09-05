@@ -1,0 +1,19 @@
+{{- $profile := (index . "install_profile") | default "remote" -}}
+{
+  "lastChangelogVersion": "0.84.4",
+  "theme": "dark",
+  "showHardwareCursor": true,
+  "defaultProvider": "{{ if eq $profile "remote" }}opencode{{ else }}openai-codex{{ end }}",
+  "defaultModel": "{{ if eq $profile "remote" }}mimo-v2.5-free{{ else }}gpt-5.6-sol{{ end }}",
+  "defaultThinkingLevel": "high",
+  "packages": [
+    "npm:@dietrichgebert/ponytail@4.9.0",
+    "npm:pi-subagents@0.65.0",
+    "npm:@ff-labs/pi-fff@0.10.6",
+    "npm:pi-mcp-adapter@2.32.1",
+    "npm:pi-context-view@0.5.0",
+    "npm:@narumitw/pi-btw@0.57.0",
+    "npm:@narumitw/pi-goal@0.54.4",
+    "npm:pi-undo-redo@0.1.1"
+  ]
+}

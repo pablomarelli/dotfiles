@@ -1,8 +1,9 @@
+{{- $profile := (index . "install_profile") | default "remote" -}}
 {
   "$schema": "https://opencode.ai/config.json",
   "instructions": ["AGENTS.md"],
-  "model": "openai/gpt-5.6-sol",
-  "small_model": "openai/gpt-5.6-luna",
+  "model": "{{ if eq $profile "remote" }}opencode/mimo-v2.5-free{{ else }}openai/gpt-5.6-sol{{ end }}",
+  "small_model": "{{ if eq $profile "remote" }}opencode/ling-3.0-flash-fin-free{{ else }}openai/gpt-5.6-luna{{ end }}",
   "skills": {
     "paths": ["~/.config/opencode/skills-work"]
   },
@@ -35,13 +36,14 @@
     }
   },
   "mcp": {
+{{ if eq $profile "full" }}
     "atlassian": {
       "type": "local",
       "command": [
         "uvx",
         "--python",
         "3.12",
-        "mcp-atlassian"
+        "mcp-atlassian==0.23.1"
       ],
       "enabled": true,
       "environment": {
@@ -50,6 +52,7 @@
         "JIRA_API_TOKEN": "{env:JIRA_API_TOKEN}"
       }
     },
+{{ end }}
     "fff": {
       "type": "local",
       "command": [
@@ -57,10 +60,11 @@
       ],
       "enabled": true
     },
+{{ if eq $profile "full" }}
     "Devops-MCP-hub": {
       "command": [
-        "/Users/pablomarelli/.local/bin/uvx",
-        "mcp-proxy-for-aws@latest",
+        "{{ .chezmoi.homeDir }}/.local/bin/uvx",
+        "mcp-proxy-for-aws==1.6.5",
         "https://mcp-devops-services-gpnvcnqr9d.gateway.bedrock-agentcore.us-east-1.amazonaws.com/mcp",
         "--service",
         "bedrock-agentcore",
@@ -72,19 +76,20 @@
       "enabled": true,
       "type": "local"
     },
+{{ end }}
     "context7": {
       "enabled": true,
       "type": "remote",
       "url": "https://mcp.context7.com/mcp"
-    },
+    }{{ if eq $profile "full" }},
     "sentry": {
       "type": "local",
       "command": [
         "zsh",
         "-lc",
-        "SENTRY_ACCESS_TOKEN=$(SENTRY_URL=\"https://sentry.jan.gl\" sentry auth token) exec npx -y @sentry/mcp-server@latest --host=sentry.jan.gl"
+        "SENTRY_ACCESS_TOKEN=$(SENTRY_URL=\"https://sentry.jan.gl\" sentry auth token) exec npx -y @sentry/mcp-server@0.39.0 --host=sentry.jan.gl"
       ],
       "enabled": true
-    }
+    }{{ end }}
   }
 }

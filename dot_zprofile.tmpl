@@ -1,0 +1,12 @@
+{{- $os := (index . "dotfiles_os") | default .chezmoi.os -}}
+{{- if eq $os "darwin" }}
+if [[ -x /opt/homebrew/bin/brew ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
+
+# MacPorts
+export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
+{{- end }}
+
+# Keep login-shell PATH unique before interactive zsh config runs.
+typeset -U path PATH

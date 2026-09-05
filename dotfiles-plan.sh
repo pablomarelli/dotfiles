@@ -26,7 +26,8 @@ plan_mise_tools() {
     'tree-sitter = "latest"' \
     'chezmoi = "2.70.0"' \
     '"github:neovim/neovim" = "latest"' \
-    'opencode = "latest"'
+    '"npm:@opencode-ai/cli" = { version = "0.0.0-beta-19151", allow_builds = ["@opencode-ai/cli"] }' \
+    '"npm:@earendil-works/pi-coding-agent" = "0.84.4"'
   case "$profile" in
     minimal|full)
       plan_join_words \
@@ -38,9 +39,9 @@ plan_mise_tools() {
         '"aqua:alexpasmantier/television" = "latest"' \
         '"aqua:joshmedeski/sesh" = "latest"' \
         'ast-grep = "latest"' \
-        '"cargo:starship" = "latest"' \
-        '"github:ogulcancelik/herdr" = "0.7.2"' \
-        '"npm:@earendil-works/pi-coding-agent" = "latest"'
+        'starship = "latest"' \
+        'rust = "latest"' \
+        '"github:ogulcancelik/herdr" = "latest"'
       ;;
   esac
   if [ "$profile" = "full" ]; then
@@ -48,7 +49,6 @@ plan_mise_tools() {
       'go = "latest"' \
       'lazydocker = "latest"' \
       'kubectx = "latest"' \
-      'rust = "latest"' \
       'python = "3.10.20"' \
       '"npm:sql-formatter" = "latest"' \
       'k9s = "latest"' \
@@ -140,7 +140,7 @@ plan_secret_targets() {
     plan_join_words
     return 0
   fi
-  set -- "$HOME/.config/opencode/ntfy.env"
+  set -- "$HOME/.config/opencode/ntfy.env" "$HOME/.config/opencode/zen.env"
   if [ "$os_key" = "darwin" ] && [ "$profile" = "full" ]; then
     set -- "$@" "$HOME/.aws/credentials"
   fi
@@ -251,15 +251,15 @@ main() {
 
   case "$profile:$headless" in
     remote:*)
-      print_plan_lines "Managed configuration groups" "core shell/PATH without Oh My Zsh rich plugin bootstrap" "Neovim" "tmux config (not plugin checkout)" "OpenCode config" "Git personal/default config" "Mise core tools"
-      print_plan_lines "Excluded important target families" "GUI terminals and desktop automation" "Herdr/Pi/rich shell UX" "work-specific config including .gitconfig.work/worktrunk/jangl" "AWS config/credentials" "container/Kubernetes/cloud/infra tools"
+      print_plan_lines "Managed configuration groups" "core shell/PATH without Oh My Zsh rich plugin bootstrap" "Neovim" "tmux config (not plugin checkout)" "OpenCode and Pi with free Zen defaults" "Git personal/default config" "Mise core tools"
+      print_plan_lines "Excluded important target families" "GUI terminals and desktop automation" "Herdr/rich shell UX" "work-specific config including .gitconfig.work/worktrunk/jangl" "AWS config/credentials" "container/Kubernetes/cloud/infra tools"
       ;;
     minimal:1)
-      print_plan_lines "Managed configuration groups" "Remote profile groups" "rich shell UX and Oh My Zsh plugin bootstrap" "Herdr" "Pi coding agent"
+      print_plan_lines "Managed configuration groups" "Remote profile groups" "rich shell UX and Oh My Zsh plugin bootstrap" "Herdr"
       print_plan_lines "Excluded important target families" "terminal GUI configuration and installation" "work-specific config including .gitconfig.work/worktrunk/jangl" "AWS config/credentials" "container/Kubernetes/cloud/infra tools" "desktop automation extras"
       ;;
     minimal:0)
-      print_plan_lines "Managed configuration groups" "Remote profile groups" "rich shell UX and Oh My Zsh plugin bootstrap" "Herdr" "Pi coding agent" "terminal GUI config/installers"
+      print_plan_lines "Managed configuration groups" "Remote profile groups" "rich shell UX and Oh My Zsh plugin bootstrap" "Herdr" "terminal GUI config/installers"
       print_plan_lines "Excluded important target families" "work-specific config including .gitconfig.work/worktrunk/jangl" "AWS config/credentials" "container/Kubernetes/cloud/infra tools" "desktop automation extras"
       ;;
     full:1)

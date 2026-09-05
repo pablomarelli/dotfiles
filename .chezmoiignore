@@ -1,19 +1,25 @@
-{{- $profile := (env "DOTFILES_INSTALL_PROFILE" | default .install_profile | default "remote") -}}
-{{- $headless := or (eq (env "DOTFILES_HEADLESS") "1") .install_headless -}}
+{{- $profile := (env "DOTFILES_INSTALL_PROFILE" | default (index . "install_profile") | default "remote") -}}
+{{- $headless := or (eq (env "DOTFILES_HEADLESS") "1") ((index . "install_headless") | default false) -}}
+{{- $os := (index . "dotfiles_os") | default .chezmoi.os -}}
+{{- $includeSecrets := (index . "include_secrets") | default false -}}
+{{- if not (or (eq $profile "remote") (eq $profile "minimal") (eq $profile "full")) }}{{ fail (printf "invalid install_profile %q: expected remote, minimal, or full" $profile) }}{{ end -}}
 # Ignore Mac-only configs on Linux
-{{ if ne .dotfiles_os "darwin" }}
+{{ if ne $os "darwin" }}
 .config/aerospace
 .config/karabiner
 {{ end }}
 
 # Ignore Linux-only configs on Mac
-{{ if ne .dotfiles_os "linux" }}
+{{ if ne $os "linux" }}
 .config/i3
 .config/albert
 {{ end }}
 
 # Never manage tmux plugins (tpm handles them)
 .config/tmux/plugins
+
+# Work-specific Pi agents stay local and are discovered recursively.
+.pi/agent/agents/work/**
 
 # Managed as private git repos — clone manually on new machines
 .config/bruno
@@ -68,6 +74,7 @@ tests
 .config/zed/**
 .config/navi/jangl.cheat
 .config/zsh/jangl.zsh
+.config/opencode/commands/reviewpr.md
 .gitconfig.work
 {{ end }}
 
@@ -102,7 +109,10 @@ run_onchange_install-zsh-plugins.sh
 !.config/opencode/AGENTS.md
 !.config/opencode/AGENTS.local.md
 !.config/opencode/commands/
-!.config/opencode/commands/**
+!.config/opencode/commands/writepr.md
+{{ if eq $profile "full" }}
+!.config/opencode/commands/reviewpr.md
+{{ end }}
 !.config/opencode/opencode.jsonc
 !.config/opencode/skills/
 !.config/opencode/skills/**
@@ -111,16 +121,18 @@ run_onchange_install-zsh-plugins.sh
 # Work skills may contain private company context; never manage them in this public repo.
 .config/opencode/skills-work/**
 !.config/opencode/tui.json
-{{ if and .include_secrets (ne (env "DOTFILES_FORCE_IGNORE_SECRETS") "1") }}
+{{ if and $includeSecrets (ne (env "DOTFILES_FORCE_IGNORE_SECRETS") "1") }}
 !.config/opencode/ntfy.env
+!.config/opencode/zen.env
 {{ end }}
 !.config/opencode/plugins/
 !.config/opencode/plugins/ntfy.ts
 
 # Secret-backed templates are opt-in. Keep this list in sync with secret-refs.txt
 # so new 1Password-backed targets cannot render by default.
-{{ if or (not .include_secrets) (eq (env "DOTFILES_FORCE_IGNORE_SECRETS") "1") }}
+{{ if or (not $includeSecrets) (eq (env "DOTFILES_FORCE_IGNORE_SECRETS") "1") }}
 .config/opencode/ntfy.env
+.config/opencode/zen.env
 .aws/credentials
 {{ end }}
 

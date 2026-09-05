@@ -1,4 +1,4 @@
-{{- $profile := .install_profile | default "remote" -}}
+{{- $profile := (index . "install_profile") | default "remote" -}}
 {{ if ne $profile "remote" -}}
 #!/usr/bin/env bash
 # Install Oh My Zsh + plugins + tpm for Minimal/Full profiles.

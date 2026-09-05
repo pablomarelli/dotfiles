@@ -5,6 +5,7 @@ DOTFILES_REPO_URL="${DOTFILES_REPO_URL:-https://github.com/pablomarelli/dotfiles
 CHEZMOI_INSTALLER_URL="${CHEZMOI_INSTALLER_URL:-https://get.chezmoi.io}"
 CHEZMOI_VERSION="${CHEZMOI_VERSION:-2.70.0}"
 ONEPASSWORD_SIGNING_KEY_ID="AC2D62742012EA22"
+ONEPASSWORD_SIGNING_KEY_FINGERPRINT="3FEF9748469ADBE15DA7CA80AC2D62742012EA22"
 WITH_SECRETS=0
 SECRETS_EXPLICIT=0
 INSTALL_PROFILE=""
@@ -275,7 +276,7 @@ install_op_macos() {
 }
 
 install_op_debian() {
-  for cmd in curl sudo gpg dpkg apt-get tee mktemp; do
+  for cmd in awk curl sudo gpg dpkg apt-get tee mktemp; do
     have "$cmd" || die "$cmd is required to install 1Password CLI on Debian/Ubuntu. Install it, then rerun with --with-secrets."
   done
 
@@ -290,6 +291,9 @@ install_op_debian() {
   log "Installing 1Password CLI with the official Debian/Ubuntu repository..."
 
   curl -fsSLo "$key_file" https://downloads.1password.com/linux/keys/1password.asc || die "Failed to download the 1Password signing key. Check network access and rerun."
+  downloaded_fingerprint="$(gpg --batch --show-keys --with-colons "$key_file" | awk -F: '$1 == "fpr" { print $10; exit }')"
+  [ "$downloaded_fingerprint" = "$ONEPASSWORD_SIGNING_KEY_FINGERPRINT" ] || die "Downloaded 1Password signing key fingerprint does not match the pinned fingerprint."
+  unset downloaded_fingerprint
   gpg --dearmor --output "$archive_keyring" "$key_file" || die "Failed to prepare the 1Password apt signing key."
   gpg --dearmor --output "$debsig_keyring" "$key_file" || die "Failed to prepare the 1Password debsig key."
   curl -fsSLo "$policy_file" https://downloads.1password.com/linux/debian/debsig/1password.pol || die "Failed to download the 1Password debsig policy."
@@ -356,28 +360,17 @@ ensure_op_authenticated() {
   op_cmd whoami >/dev/null 2>&1 || die "1Password CLI is still not authenticated. Rerun without --with-secrets to skip secret-backed templates."
 }
 
-secret_target_paths() {
-  printf '%s\n' "$HOME/.config/opencode/ntfy.env"
-  if [ "$(os_name)" = "Darwin" ] && [ "$INSTALL_PROFILE" = "full" ]; then
-    printf '%s\n' "$HOME/.aws/credentials"
-  fi
-}
-
 apply_secret_targets() {
-  ntfy_target="$HOME/.config/opencode/ntfy.env"
+  mkdir -p "$HOME/.config/opencode"
+  set -- "$HOME/.config/opencode/ntfy.env" "$HOME/.config/opencode/zen.env"
   if [ "$(os_name)" = "Darwin" ] && [ "$INSTALL_PROFILE" = "full" ]; then
-    aws_target="$HOME/.aws/credentials"
-    if [ -n "$OP_SESSION_TOKEN" ]; then
-      OP_SESSION="$OP_SESSION_TOKEN" chezmoi apply "$ntfy_target" "$aws_target"
-    else
-      chezmoi apply "$ntfy_target" "$aws_target"
-    fi
+    mkdir -p "$HOME/.aws"
+    set -- "$@" "$HOME/.aws/credentials"
+  fi
+  if [ -n "$OP_SESSION_TOKEN" ]; then
+    OP_SESSION="$OP_SESSION_TOKEN" chezmoi apply "$@"
   else
-    if [ -n "$OP_SESSION_TOKEN" ]; then
-      OP_SESSION="$OP_SESSION_TOKEN" chezmoi apply "$ntfy_target"
-    else
-      chezmoi apply "$ntfy_target"
-    fi
+    chezmoi apply "$@"
   fi
 }
 

@@ -1,6 +1,8 @@
 
+{{- $profile := (index . "install_profile") | default "remote" -}}
 export CLAUDE_CODE_NATIVE_CURSOR=1
 
+{{ if eq $profile "full" -}}
 # Bitwarden session + JIRA credentials.
 # ponytail: do not call bw during shell startup; run jira-env when credentials are needed.
 if command -v bw >/dev/null 2>&1; then
@@ -34,10 +36,20 @@ if command -v bw >/dev/null 2>&1; then
     echo "Bitwarden session and JIRA credentials refreshed."
   }
 fi
+{{ end -}}
 
-if [[ -r "$HOME/.config/opencode/ntfy.env" ]]; then
-  source "$HOME/.config/opencode/ntfy.env"
-fi
+opencode2() (
+  local env_file
+  for env_file in "$HOME/.config/opencode/ntfy.env" "$HOME/.config/opencode/zen.env"; do
+    [[ -r "$env_file" ]] && source "$env_file"
+  done
+  command opencode2 "$@"
+)
+
+pi() (
+  [[ -r "$HOME/.config/opencode/zen.env" ]] && source "$HOME/.config/opencode/zen.env"
+  command pi "$@"
+)
 
 # This machine is SSH/headless-only. Force 1Password CLI to use manual
 # account sign-in instead of trying to connect to the desktop app.

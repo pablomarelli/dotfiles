@@ -214,6 +214,9 @@ EOF
   cat >"$bin/gpg" <<'EOF'
 #!/bin/sh
 printf 'gpg %s\n' "$*" >>"$EVENT_LOG"
+case " $* " in
+  *" --show-keys "*) printf 'fpr:::::::::%s:\n' "${GPG_FINGERPRINT:-3FEF9748469ADBE15DA7CA80AC2D62742012EA22}"; exit 0 ;;
+esac
 out=""
 while [ "$#" -gt 0 ]; do
   if [ "$1" = "--output" ]; then
@@ -234,6 +237,12 @@ if [ "$1" = "--print-architecture" ]; then
 fi
 EOF
   chmod +x "$bin/dpkg"
+
+  cat >"$bin/apt-get" <<'EOF'
+#!/bin/sh
+exit 0
+EOF
+  chmod +x "$bin/apt-get"
 
   [ "$with_op" = "without-op" ] || write_op "$bin"
 }
@@ -259,6 +268,7 @@ run_installer() {
   OP_REQUIRE_SIGNIN_STDIN="${OP_REQUIRE_SIGNIN_STDIN:-}" \
   APPLY_REQUIRES_OP_SESSION="${APPLY_REQUIRES_OP_SESSION:-0}" \
   FAIL_SECRET_APPLY="${FAIL_SECRET_APPLY:-0}" \
+  GPG_FINGERPRINT="${GPG_FINGERPRINT:-3FEF9748469ADBE15DA7CA80AC2D62742012EA22}" \
   "$ROOT_DIR/install.sh" "$@"
 }
 
@@ -266,7 +276,7 @@ run_installer_with_pty() {
   local dir="$1" tty_input="$2" stdin_input="$3" prefix="$4"
   shift 4
   python3 - "$ROOT_DIR/install.sh" "$dir" "$tty_input" "$stdin_input" "$prefix" "$@" <<'PY'
-import errno, os, select, signal, sys, time
+import errno, fcntl, os, select, signal, sys, termios, time
 
 script, directory, tty_input, stdin_input, prefix, *args = sys.argv[1:]
 tty_input = tty_input.encode().decode("unicode_escape")
@@ -293,6 +303,8 @@ if pid == 0:
     try:
         os.setsid()
         ctty = os.open(slave_name, os.O_RDWR)
+        fcntl.ioctl(ctty, termios.TIOCSCTTY, 0)
+        os.open("/dev/tty", os.O_RDWR)
         os.dup2(stdin_r, 0)
         os.dup2(stdout_w, 1)
         os.dup2(stderr_w, 2)
@@ -301,8 +313,6 @@ if pid == 0:
                 os.close(fd)
             except OSError:
                 pass
-        if ctty > 2:
-            os.close(ctty)
         env = os.environ.copy()
         env.update({
             "EVENT_LOG": f"{directory}/events.log",
@@ -463,9 +473,11 @@ assert_ignored_for_profile() {
       assert_contains "$output" ".aws/credentials"
     fi
     assert_not_contains "$output" ".gitconfig.work"
+    assert_not_contains "$output" ".config/opencode/commands/reviewpr.md"
   else
     assert_contains "$output" ".aws"
     assert_contains "$output" ".gitconfig.work"
+    assert_contains "$output" ".config/opencode/commands/reviewpr.md"
     assert_contains "$output" ".config/zsh/jangl.zsh"
     if [[ "$profile" == "remote" ]]; then
       assert_contains "$output" ".config/navi"
@@ -475,8 +487,10 @@ assert_ignored_for_profile() {
   fi
   if [[ "$include" == "1" ]]; then
     assert_not_contains "$output" ".config/opencode/ntfy.env"
+    assert_not_contains "$output" ".config/opencode/zen.env"
   else
     assert_contains "$output" ".config/opencode/ntfy.env"
+    assert_contains "$output" ".config/opencode/zen.env"
   fi
 }
 
@@ -629,6 +643,7 @@ test_planner_runs_with_no_path() {
     /bin/sh "$ROOT_DIR/dotfiles-plan.sh" minimal 1 linux 1 1 "$dir/home" https://github.com/pablomarelli/dotfiles.git https://get.chezmoi.io >"$dir/plan.out"
   assert_contains "$dir/plan.out" "Selected profile: minimal"
   assert_contains "$dir/plan.out" "$dir/home/.config/opencode/ntfy.env"
+  assert_contains "$dir/plan.out" "$dir/home/.config/opencode/zen.env"
   assert_contains "$dir/plan.out" "NO CHANGES WERE MADE."
 }
 
@@ -715,7 +730,9 @@ test_with_secrets_verifies_before_apply() {
   assert_contains "$dir/events.log" "chezmoi source-path"
   assert_contains "$dir/events.log" "op whoami"
   assert_contains "$dir/events.log" "op read --no-newline op://Homelab/OpenCode ntfy/url"
-  assert_contains "$dir/events.log" "chezmoi apply $dir/home/.config/opencode/ntfy.env"
+  assert_contains "$dir/events.log" "op read --no-newline op://Homelab/OpenCode Zen/api_key"
+  assert_contains "$dir/events.log" "chezmoi apply $dir/home/.config/opencode/ntfy.env $dir/home/.config/opencode/zen.env"
+  [[ -d "$dir/home/.config/opencode" ]] || fail "secret apply did not create the OpenCode config directory"
   assert_contains "$dir/events.log" "general-apply OP_SESSION="
 
   init_line="$(grep -nF 'chezmoi init ' "$dir/events.log" | cut -d: -f1 | head -n1)"
@@ -825,10 +842,25 @@ test_debian_op_install_path_is_mockable() {
   (export DOTFILES_FORCE_INSTALL_OP=1; run_installer "$dir" --profile remote --with-secrets)
 
   assert_contains "$dir/events.log" "curl -fsSLo"
+  assert_contains "$dir/events.log" "gpg --batch --show-keys --with-colons"
   assert_contains "$dir/events.log" "gpg --dearmor --output"
   assert_contains "$dir/events.log" "sudo install -D -m 0644"
   assert_contains "$dir/events.log" "sudo apt-get install -y 1password-cli"
   assert_contains "$dir/events.log" "chezmoi apply"
+}
+
+test_debian_op_rejects_unexpected_signing_key() {
+  local dir
+  dir="$(mktemp -d)"
+  make_fixture "$dir" without-op
+
+  if (export DOTFILES_FORCE_INSTALL_OP=1 GPG_FINGERPRINT=BAD; run_installer "$dir" --profile remote --with-secrets) >"$dir/stdout" 2>"$dir/stderr"; then
+    fail "unexpected 1Password signing key was trusted"
+  fi
+
+  assert_contains "$dir/stderr" "fingerprint does not match"
+  assert_not_contains "$dir/events.log" "sudo install -D -m 0644"
+  assert_not_contains "$dir/events.log" "chezmoi apply"
 }
 
 test_darwin_homebrew_op_install_and_refs() {
@@ -853,7 +885,7 @@ test_secret_target_selection_by_os_profile() {
         make_fixture "$dir"
         if [[ "$include" == "true" ]]; then
           (export TEST_OS="$os"; run_installer "$dir" --profile "$profile" --with-secrets)
-          assert_contains "$dir/events.log" "chezmoi apply $dir/home/.config/opencode/ntfy.env"
+          assert_contains "$dir/events.log" "chezmoi apply $dir/home/.config/opencode/ntfy.env $dir/home/.config/opencode/zen.env"
           if [[ "$os" == "darwin" && "$profile" == "full" ]]; then
             assert_contains "$dir/events.log" "$dir/home/.aws/credentials"
             assert_contains "$dir/events.log" "op read --no-newline op://Private/AWS Credentials/default_key_id"
@@ -880,7 +912,7 @@ test_secret_target_apply_is_independent_of_cwd() {
 
   (cd "$outside" && run_installer "$dir" --profile full --with-secrets)
 
-  assert_contains "$dir/events.log" "chezmoi apply $dir/home/.config/opencode/ntfy.env"
+  assert_contains "$dir/events.log" "chezmoi apply $dir/home/.config/opencode/ntfy.env $dir/home/.config/opencode/zen.env"
   assert_contains "$dir/events.log" "secret-apply OP_SESSION="
   assert_not_contains "$dir/events.log" "chezmoi apply .config/opencode/ntfy.env"
 }
@@ -894,6 +926,7 @@ test_real_chezmoi_ignore_and_config_data() {
   assert_contains "$dir/home/.config/chezmoi/chezmoi.toml" 'dotfiles_os = "linux"'
   HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" ignored >"$dir/ignored-linux"
   assert_contains "$dir/ignored-linux" ".config/opencode/ntfy.env"
+  assert_contains "$dir/ignored-linux" ".config/opencode/zen.env"
   assert_contains "$dir/ignored-linux" ".aws"
 
   make_real_config "$dir" 0 darwin
@@ -901,11 +934,13 @@ test_real_chezmoi_ignore_and_config_data() {
   assert_contains "$dir/home/.config/chezmoi/chezmoi.toml" 'dotfiles_os = "darwin"'
   HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" ignored >"$dir/ignored-darwin"
   assert_contains "$dir/ignored-darwin" ".config/opencode/ntfy.env"
+  assert_contains "$dir/ignored-darwin" ".config/opencode/zen.env"
   assert_contains "$dir/ignored-darwin" ".aws"
 
   make_real_config "$dir" 1 darwin full
   HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" ignored >"$dir/ignored-secrets"
   assert_not_contains "$dir/ignored-secrets" ".config/opencode/ntfy.env"
+  assert_not_contains "$dir/ignored-secrets" ".config/opencode/zen.env"
   assert_not_contains "$dir/ignored-secrets" ".aws/credentials"
 
   for os in linux darwin; do
@@ -919,6 +954,7 @@ test_real_chezmoi_ignore_and_config_data() {
   make_real_config "$dir" 1 linux full
   DOTFILES_FORCE_IGNORE_SECRETS=1 HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" ignored >"$dir/ignored-force-linux"
   assert_contains "$dir/ignored-force-linux" ".config/opencode/ntfy.env"
+  assert_contains "$dir/ignored-force-linux" ".config/opencode/zen.env"
   assert_contains "$dir/ignored-force-linux" ".aws/credentials"
   mkdir -p "$dir/bin"
   cat >"$dir/bin/op" <<'EOF'
@@ -931,6 +967,7 @@ EOF
   make_real_config "$dir" 1 darwin full
   DOTFILES_FORCE_IGNORE_SECRETS=1 HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" ignored >"$dir/ignored-force-darwin"
   assert_contains "$dir/ignored-force-darwin" ".config/opencode/ntfy.env"
+  assert_contains "$dir/ignored-force-darwin" ".config/opencode/zen.env"
   assert_contains "$dir/ignored-force-darwin" ".aws/credentials"
 }
 
@@ -940,6 +977,8 @@ test_profile_mise_rendering() {
 
   expected_remote="$(cat <<'EOF' | sort
 "github:neovim/neovim" = "latest"
+"npm:@opencode-ai/cli" = { version = "0.0.0-beta-19151", allow_builds = ["@opencode-ai/cli"] }
+"npm:@earendil-works/pi-coding-agent" = "0.84.4"
 chezmoi = "2.70.0"
 delta = "latest"
 fd = "latest"
@@ -947,7 +986,6 @@ fzf = "latest"
 gh = "latest"
 jq = "latest"
 node = "24"
-opencode = "latest"
 ripgrep = "latest"
 tmux = "latest"
 tree-sitter = "latest"
@@ -957,10 +995,12 @@ EOF
 "aqua:alexpasmantier/television" = "latest"
 "aqua:joshmedeski/sesh" = "latest"
 "cargo:navi" = "latest"
-"cargo:starship" = "latest"
 "github:neovim/neovim" = "latest"
-"github:ogulcancelik/herdr" = "0.7.2"
-"npm:@earendil-works/pi-coding-agent" = "latest"
+rust = "latest"
+starship = "latest"
+"github:ogulcancelik/herdr" = "latest"
+"npm:@earendil-works/pi-coding-agent" = "0.84.4"
+"npm:@opencode-ai/cli" = { version = "0.0.0-beta-19151", allow_builds = ["@opencode-ai/cli"] }
 ast-grep = "latest"
 bat = "latest"
 chezmoi = "2.70.0"
@@ -972,7 +1012,6 @@ gh = "latest"
 jq = "latest"
 lazygit = "latest"
 node = "24"
-opencode = "latest"
 ripgrep = "latest"
 tmux = "latest"
 tree-sitter = "latest"
@@ -983,10 +1022,11 @@ EOF
 "aqua:alexpasmantier/television" = "latest"
 "aqua:joshmedeski/sesh" = "latest"
 "cargo:navi" = "latest"
-"cargo:starship" = "latest"
 "github:neovim/neovim" = "latest"
-"github:ogulcancelik/herdr" = "0.7.2"
-"npm:@earendil-works/pi-coding-agent" = "latest"
+"github:ogulcancelik/herdr" = "latest"
+starship = "latest"
+"npm:@earendil-works/pi-coding-agent" = "0.84.4"
+"npm:@opencode-ai/cli" = { version = "0.0.0-beta-19151", allow_builds = ["@opencode-ai/cli"] }
 "npm:sql-formatter" = "latest"
 ast-grep = "latest"
 bat = "latest"
@@ -1010,7 +1050,6 @@ kubectx = "latest"
 lazydocker = "latest"
 lazygit = "latest"
 node = "24"
-opencode = "latest"
 opentofu = "latest"
 pipx = "latest"
 python = "3.10.20"
@@ -1118,11 +1157,13 @@ test_dryrun_secret_target_plan() {
     (export TEST_OS=linux; dryrun_installer "$dir" --profile "$profile" --with-secrets --non-interactive)
     output="$dir/dryrun.out"
     assert_contains "$output" "$dir/home/.config/opencode/ntfy.env"
+    assert_contains "$output" "$dir/home/.config/opencode/zen.env"
     assert_not_contains "$output" "$dir/home/.aws/credentials"
 
     (export TEST_OS=darwin; dryrun_installer "$dir" --profile "$profile" --with-secrets --non-interactive)
     output="$dir/dryrun.out"
     assert_contains "$output" "$dir/home/.config/opencode/ntfy.env"
+    assert_contains "$output" "$dir/home/.config/opencode/zen.env"
     if [[ "$profile" == "full" ]]; then
       assert_contains "$output" "$dir/home/.aws/credentials"
     else
@@ -1253,7 +1294,123 @@ test_zsh_plugin_profile_contract() {
   [[ "$minimal_hash" != "$full_hash" ]] || fail "minimal to full should change run_onchange content"
 }
 
-test_darwin_package_sets_and_github_token() {
+test_portable_profile_configs() {
+  local dir
+  dir="$(mktemp -d)"
+
+  make_real_config "$dir" 0 linux remote
+  render_with_config "$dir" "$ROOT_DIR/dot_zprofile.tmpl" "$dir/zprofile-linux"
+  assert_not_contains "$dir/zprofile-linux" "/opt/homebrew"
+  assert_not_contains "$dir/zprofile-linux" "/opt/local"
+
+  render_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-remote.json"
+  jq -e '.model == "opencode/mimo-v2.5-free" and .small_model == "opencode/ling-3.0-flash-fin-free"' "$dir/opencode-remote.json" >/dev/null
+  assert_not_contains "$dir/opencode-remote.json" '"atlassian"'
+  assert_not_contains "$dir/opencode-remote.json" '"Devops-MCP-hub"'
+  assert_not_contains "$dir/opencode-remote.json" '"sentry"'
+
+  render_with_config "$dir" "$ROOT_DIR/dot_pi/private_agent/settings.json.tmpl" "$dir/pi-remote.json"
+  jq -e '.defaultProvider == "opencode" and .defaultModel == "mimo-v2.5-free"' "$dir/pi-remote.json" >/dev/null
+
+  make_real_config "$dir" 0 darwin full
+  render_with_config "$dir" "$ROOT_DIR/dot_zprofile.tmpl" "$dir/zprofile-darwin"
+  assert_contains "$dir/zprofile-darwin" "/opt/homebrew"
+  assert_contains "$dir/zprofile-darwin" "/opt/local"
+
+  render_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-full.json"
+  jq -e '.model == "openai/gpt-5.6-sol" and .mcp.atlassian.enabled and .mcp["Devops-MCP-hub"].enabled and .mcp.sentry.enabled' "$dir/opencode-full.json" >/dev/null
+
+  render_with_config "$dir" "$ROOT_DIR/dot_pi/private_agent/settings.json.tmpl" "$dir/pi-full.json"
+  jq -e '.defaultProvider == "openai-codex" and .defaultModel == "gpt-5.6-sol"' "$dir/pi-full.json" >/dev/null
+
+}
+
+test_pi_work_agents_are_local_only() {
+  local dir
+  dir="$(mktemp -d)"
+  [[ ! -e "$ROOT_DIR/dot_pi/private_agent/agents/calls-integrations-maker.md.tmpl" ]] || fail "calls work agent is still managed by chezmoi"
+  [[ ! -e "$ROOT_DIR/dot_pi/private_agent/agents/webleads-integrations-maker.md.tmpl" ]] || fail "webleads work agent is still managed by chezmoi"
+  [[ ! -e "$ROOT_DIR/private_dot_config/opencode/agent/calls-integrations-maker.md.tmpl" ]] || fail "calls work agent is still managed by OpenCode chezmoi config"
+  [[ ! -e "$ROOT_DIR/private_dot_config/opencode/agent/webleads-integrations-maker.md.tmpl" ]] || fail "webleads work agent is still managed by OpenCode chezmoi config"
+  assert_contains "$ROOT_DIR/.chezmoiignore" ".pi/agent/agents/work/**"
+
+  make_real_config "$dir" 0 darwin full
+  HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" managed >"$dir/managed"
+  assert_not_contains "$dir/managed" ".pi/agent/agents/calls-integrations-maker.md"
+  assert_not_contains "$dir/managed" ".pi/agent/agents/webleads-integrations-maker.md"
+}
+
+test_agent_keys_are_scoped_to_agent_processes() {
+  local dir
+  dir="$(mktemp -d)"
+  mkdir -p "$dir/bin" "$dir/home/.config/opencode"
+  make_real_config "$dir" 0 linux remote
+  render_with_config "$dir" "$ROOT_DIR/private_dot_config/zsh/load_env_vars.zsh.tmpl" "$dir/load-env.zsh"
+
+  cat >"$dir/home/.config/opencode/zen.env" <<'EOF'
+export OPENCODE_API_KEY=zen-secret
+EOF
+  cat >"$dir/home/.config/opencode/ntfy.env" <<'EOF'
+export OPENCODE_NTFY_TOKEN=ntfy-secret
+EOF
+  cat >"$dir/bin/pi" <<'EOF'
+#!/bin/sh
+printf 'zen=%s ntfy=%s\n' "${OPENCODE_API_KEY:-}" "${OPENCODE_NTFY_TOKEN:-}"
+EOF
+  cp "$dir/bin/pi" "$dir/bin/opencode2"
+  chmod +x "$dir/bin/pi" "$dir/bin/opencode2"
+
+  HOME="$dir/home" PATH="$dir/bin:/usr/bin:/bin" /bin/zsh -f -c '
+    source "$1"
+    [[ -z ${OPENCODE_API_KEY:-} ]]
+    [[ -z ${OPENCODE_NTFY_TOKEN:-} ]]
+    pi >"$2/pi.out"
+    opencode2 >"$2/opencode.out"
+    [[ -z ${OPENCODE_API_KEY:-} ]]
+    [[ -z ${OPENCODE_NTFY_TOKEN:-} ]]
+  ' _ "$dir/load-env.zsh" "$dir"
+
+  assert_contains "$dir/pi.out" "zen=zen-secret ntfy="
+  assert_contains "$dir/opencode.out" "zen=zen-secret ntfy=ntfy-secret"
+}
+
+test_aliases_preserve_system_commands_without_optional_tools() {
+  PATH=/usr/bin:/bin /bin/zsh -f -c '
+    source "$1"
+    (( ! $+aliases[ls] ))
+    (( ! $+aliases[diff] ))
+    command -v ls >/dev/null
+    command -v diff >/dev/null
+  ' _ "$ROOT_DIR/private_dot_config/zsh/aliases.zsh"
+}
+
+test_direct_template_profile_validation_and_legacy_defaults() {
+  local dir
+  dir="$(mktemp -d)"
+  mkdir -p "$dir/home/.config/chezmoi"
+
+  if DOTFILES_INSTALL_PROFILE=nope HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" execute-template --init <"$ROOT_DIR/.chezmoi.toml.tmpl" >"$dir/invalid-config" 2>"$dir/invalid-error"; then
+    fail "direct initialization accepted an invalid profile"
+  fi
+  assert_contains "$dir/invalid-error" "expected remote, minimal, or full"
+
+  cat >"$dir/home/.config/chezmoi/chezmoi.toml" <<'EOF'
+[data]
+  name = "Legacy config"
+EOF
+  HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" ignored >"$dir/legacy-ignored"
+  render_with_config "$dir" "$ROOT_DIR/private_dot_config/mise/config.toml.tmpl" "$dir/legacy-mise.toml"
+  assert_contains "$dir/legacy-mise.toml" '"npm:@earendil-works/pi-coding-agent" = "0.84.4"'
+}
+
+test_package_scripts_track_mise_config() {
+  assert_contains "$ROOT_DIR/run_onchange_install-packages-darwin.sh.tmpl" 'includeTemplate "private_dot_config/mise/config.toml.tmpl"'
+  assert_contains "$ROOT_DIR/run_onchange_install-packages-linux.sh.tmpl" 'includeTemplate "private_dot_config/mise/config.toml.tmpl"'
+  assert_not_contains "$ROOT_DIR/run_onchange_install-packages-darwin.sh.tmpl" 'gh auth token'
+  assert_not_contains "$ROOT_DIR/run_onchange_install-packages-linux.sh.tmpl" 'gh auth token'
+}
+
+test_darwin_package_sets_without_github_token() {
   local dir bin home script output profile headless expected_pkgs expected_casks actual_pkgs actual_casks
   for profile in remote minimal full; do
     for headless in 0 1; do
@@ -1303,7 +1460,8 @@ EOF
       esac
       [[ "$actual_pkgs" == "$expected_pkgs" ]] || fail "unexpected darwin packages for $profile headless=$headless: $actual_pkgs"
       [[ "$actual_casks" == "$expected_casks" ]] || fail "unexpected darwin casks for $profile headless=$headless: $actual_casks"
-      assert_contains "$dir/mise.log" "GITHUB_TOKEN=present"
+      assert_contains "$dir/mise.log" "GITHUB_TOKEN="
+      assert_not_contains "$dir/mise.log" "GITHUB_TOKEN=present"
     done
   done
 
@@ -1458,7 +1616,7 @@ test_ntfy_template_shell_quotes_hostile_values() {
   PATH="$dir/bin:$PATH" \
   OP_NTFY_URL='https://ntfy.example/$(touch SHOULD_NOT_RUN)' \
   OP_NTFY_TOKEN="abc'; touch SHOULD_NOT_RUN; #" \
-  HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" execute-template <"$ROOT_DIR/private_dot_config/opencode/ntfy.env.tmpl" >"$rendered"
+  HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" execute-template <"$ROOT_DIR/private_dot_config/opencode/private_ntfy.env.tmpl" >"$rendered"
 
   (
     cd "$dir"
@@ -1469,16 +1627,41 @@ test_ntfy_template_shell_quotes_hostile_values() {
   )
 }
 
+test_zen_template_shell_quotes_hostile_values() {
+  local dir rendered
+  dir="$(mktemp -d)"
+  mkdir -p "$dir/bin" "$dir/home"
+  : >"$dir/events.log"
+  write_op "$dir/bin"
+  rendered="$dir/zen.env"
+
+  EVENT_LOG="$dir/events.log" \
+  PATH="$dir/bin:$PATH" \
+  OP_DEFAULT_VALUE="abc'; touch SHOULD_NOT_RUN; #" \
+  HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" execute-template <"$ROOT_DIR/private_dot_config/opencode/private_zen.env.tmpl" >"$rendered"
+
+  (
+    cd "$dir"
+    EXPECTED="abc'; touch SHOULD_NOT_RUN; #" \
+      bash -c 'set -eu; source ./zen.env; test "$OPENCODE_API_KEY" = "$EXPECTED"; test ! -e SHOULD_NOT_RUN'
+  )
+}
+
 test_linux_package_runs_mise_without_github_token() {
   local dir bin home script output
   dir="$(mktemp -d)"
   bin="$dir/bin"
   home="$dir/home"
   mkdir -p "$bin" "$home"
+  cat >"$dir/os-release" <<'EOF'
+ID=ubuntu
+ID_LIKE=debian
+EOF
   script="$dir/linux-bootstrap.sh"
   output="$dir/output.log"
 
-  sed '1d;$d' "$ROOT_DIR/run_onchange_install-packages-linux.sh.tmpl" >"$script"
+  make_real_config "$dir" 0 linux remote 1
+  render_with_config "$dir" "$ROOT_DIR/run_onchange_install-packages-linux.sh.tmpl" "$script"
 
   cat >"$bin/sudo" <<'EOF'
 #!/bin/sh
@@ -1540,7 +1723,7 @@ esac
 EOF
   chmod +x "$bin/curl"
 
-  MISE_LOG="$dir/mise.log" HOME="$home" DOTFILES_HEADLESS=1 PATH="$bin:/usr/bin:/bin" bash "$script" >"$output" 2>&1
+  MISE_LOG="$dir/mise.log" HOME="$home" DOTFILES_HEADLESS=1 DOTFILES_TEST_OS_RELEASE="$dir/os-release" PATH="$bin:/usr/bin:/bin" bash "$script" >"$output" 2>&1
 
   assert_contains "$output" "Running mise install for"
   [[ -x "$home/.local/bin/mise" ]] || fail "mise installer did not create expected artifact"
@@ -1658,6 +1841,7 @@ test_failed_secret_apply_prevents_general_apply
 test_signin_output_is_not_executed_or_logged
 test_unauthenticated_without_tty_fails
 test_debian_op_install_path_is_mockable
+test_debian_op_rejects_unexpected_signing_key
 test_darwin_homebrew_op_install_and_refs
 test_secret_target_selection_by_os_profile
 test_secret_target_apply_is_independent_of_cwd
@@ -1670,11 +1854,18 @@ test_headless_gui_config_ignore_matches_plan
 test_dryrun_external_contacts_are_complete
 test_profile_package_script_rendering
 test_zsh_plugin_profile_contract
-test_darwin_package_sets_and_github_token
+test_portable_profile_configs
+test_pi_work_agents_are_local_only
+test_agent_keys_are_scoped_to_agent_processes
+test_aliases_preserve_system_commands_without_optional_tools
+test_direct_template_profile_validation_and_legacy_defaults
+test_package_scripts_track_mise_config
+test_darwin_package_sets_without_github_token
 test_linux_package_sets_by_profile_headless_on_linux
 test_ambient_op_session_is_captured_and_not_leaked
 test_secret_refs_manifest_covers_template_refs
 test_ntfy_template_shell_quotes_hostile_values
+test_zen_template_shell_quotes_hostile_values
 test_linux_package_runs_mise_without_github_token
 test_chezmoi_installer_download_failure_is_not_executed
 test_chezmoi_installer_downloaded_before_execution

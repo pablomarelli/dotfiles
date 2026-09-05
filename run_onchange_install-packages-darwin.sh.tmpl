@@ -1,9 +1,13 @@
-{{ if eq .dotfiles_os "darwin" -}}
+{{- $os := (index . "dotfiles_os") | default .chezmoi.os -}}
+{{- $profile := (index . "install_profile") | default "remote" -}}
+{{- $headless := (index . "install_headless") | default false -}}
+{{ if eq $os "darwin" -}}
 #!/usr/bin/env bash
-# macOS bootstrap - re-runs when this rendered profile script changes
+# macOS bootstrap - re-runs when this rendered profile or Mise config changes
+# Mise config hash: {{ includeTemplate "private_dot_config/mise/config.toml.tmpl" . | sha256sum }}
 set -e
-PROFILE="{{ .install_profile | default "remote" }}"
-HEADLESS="{{ if or (eq (env "DOTFILES_HEADLESS") "1") .install_headless }}1{{ else }}0{{ end }}"
+PROFILE="{{ $profile }}"
+HEADLESS="{{ if or (eq (env "DOTFILES_HEADLESS") "1") $headless }}1{{ else }}0{{ end }}"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -117,11 +121,6 @@ if ! command_exists mise; then
 fi
 command_exists mise || { echo -e "${RED}✗${NC} mise installer completed but mise is not on PATH"; exit 1; }
 echo -e "${GREEN}✓${NC} mise installed"
-
-if [[ -z "${GITHUB_TOKEN:-}" ]] && command_exists gh; then
-  GITHUB_TOKEN="$(gh auth token 2>/dev/null || true)"
-  export GITHUB_TOKEN
-fi
 
 echo -e "${YELLOW}→${NC} Running mise install for $PROFILE profile (this may take a while)..."
 if ! mise install; then

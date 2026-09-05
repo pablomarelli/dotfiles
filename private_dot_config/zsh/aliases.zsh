@@ -1,15 +1,17 @@
 alias v=nvim
-alias diff="hunk diff"
+command -v hunk >/dev/null 2>&1 && alias diff="hunk diff"
 
 # Eza
-alias la="eza --long --header --icons --git --all --group-directories-first"
-alias lap="eza --long --header --absolute=follow --icons --git --all"
-alias lad="eza --long --header --only-dirs --icons --git --all"
-alias ls="eza --header --icons --git --all --group-directories-first"
-alias lt="eza --tree --level=2 --long --icons --git"
+if command -v eza >/dev/null 2>&1; then
+  alias la="eza --long --header --icons --git --all --group-directories-first"
+  alias lap="eza --long --header --absolute=follow --icons --git --all"
+  alias lad="eza --long --header --only-dirs --icons --git --all"
+  alias ls="eza --header --icons --git --all --group-directories-first"
+  alias lt="eza --tree --level=2 --long --icons --git"
+fi
 
 # xh modern curl
-alias http="xh"
+command -v xh >/dev/null 2>&1 && alias http="xh"
 
 # My ip address
 alias checkip="ip address | grep -o \"inet 192.*/\" | awk '{ print \$2 }' | tr / ' ' | xargs"
