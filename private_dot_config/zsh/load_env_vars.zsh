@@ -1,4 +1,6 @@
 
+export CLAUDE_CODE_NATIVE_CURSOR=1
+
 # Bitwarden session + JIRA credentials.
 # ponytail: do not call bw during shell startup; run jira-env when credentials are needed.
 if command -v bw >/dev/null 2>&1; then
