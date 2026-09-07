@@ -1317,8 +1317,11 @@ test_portable_profile_configs() {
   assert_contains "$dir/zprofile-darwin" "/opt/homebrew"
   assert_contains "$dir/zprofile-darwin" "/opt/local"
 
+  render_with_config "$dir" "$ROOT_DIR/private_dot_config/ghostty/config.tmpl" "$dir/ghostty-config"
+  assert_contains "$dir/ghostty-config" "$dir/home/.config/ghostty/shaders/cursor_smear.glsl"
+
   render_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-full.json"
-  jq -e '.model == "openai/gpt-5.6-sol" and .mcp.atlassian.enabled and .mcp["Devops-MCP-hub"].enabled and .mcp.sentry.enabled' "$dir/opencode-full.json" >/dev/null
+  jq -e '.model == "openai/gpt-5.6-sol" and (.mcp.servers.atlassian.codemode == false) and .mcp.servers["Devops-MCP-hub"] and .mcp.servers.sentry and (.websearch.provider == "random")' "$dir/opencode-full.json" >/dev/null
 
   render_with_config "$dir" "$ROOT_DIR/dot_pi/private_agent/settings.json.tmpl" "$dir/pi-full.json"
   jq -e '.defaultProvider == "openai-codex" and .defaultModel == "gpt-5.6-sol"' "$dir/pi-full.json" >/dev/null

@@ -59,3 +59,15 @@ if command -v navi >/dev/null 2>&1; then
   fi
   [[ -f "$_navi_cache" ]] && source "$_navi_cache"
 fi
+
+# Warn when a global npm install bypasses mise (globals installed this way
+# get deleted silently when mise upgrades/prunes the node version they live in).
+autoload -Uz add-zsh-hook
+_warn_npm_global_install() {
+  emulate -L zsh
+  local cmd="$1"
+  if [[ "$cmd" == npm\ (install|i|add)\ * ]] && [[ "$cmd" == *(-g|--global)* ]]; then
+    print -u2 -P "%F{yellow}⚠ npm global install detected.%f Prefer: %F{cyan}mise use -g npm:<package>@latest%f"
+  fi
+}
+add-zsh-hook preexec _warn_npm_global_install

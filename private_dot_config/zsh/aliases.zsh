@@ -1,5 +1,5 @@
 alias v=nvim
-command -v hunk >/dev/null 2>&1 && alias diff="hunk diff"
+unalias diff 2>/dev/null
 
 # Eza
 if command -v eza >/dev/null 2>&1; then
@@ -45,6 +45,9 @@ alias lg2="log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)
 
 # WT - Aliases
 alias wtf='wt switch $(wt list | tail -n +2 | sed "s/\x1b\[[0-9;]*m//g" | awk "{print \$2}" | fzf)'
+
+# SSH
+alias hh='herdr --remote homelab --remote-keybindings server'
 
 # Other aliases
 alias lzd="lazydocker"

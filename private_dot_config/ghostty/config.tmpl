@@ -1,5 +1,6 @@
-# theme = light:Monokai Pro Light Sun,dark:Monokai Classic
-theme = Gruvbox Dark
+# auto-update-channel = tip
+
+theme = light:Gruvbox Light, dark:Gruvbox Dark
 font-family = JetBrains Mono
 font-style = Bold
 font-thicken = true
@@ -11,9 +12,9 @@ macos-option-as-alt = true
 
 scrollback-limit = 500000000
 
-custom-shader = /home/pablo/.config/ghostty/shaders/cursor_smear.glsl
-# custom-shader = /Users/pablomarelli/.config/ghostty/shaders/cursor_blaze.glsl
-# custom-shader = /Users/pablomarelli/.config/ghostty/shaders/cursor_frozen.glsl
+custom-shader = {{ .chezmoi.homeDir }}/.config/ghostty/shaders/cursor_smear.glsl
+# custom-shader = {{ .chezmoi.homeDir }}/.config/ghostty/shaders/cursor_blaze.glsl
+# custom-shader = {{ .chezmoi.homeDir }}/.config/ghostty/shaders/cursor_frozen.glsl
 
 # Let terminal apps write to local clipboard via OSC52
 clipboard-write = allow

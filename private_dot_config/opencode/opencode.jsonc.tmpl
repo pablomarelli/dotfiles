@@ -36,60 +36,61 @@
     }
   },
   "mcp": {
+    "servers": {
 {{ if eq $profile "full" }}
-    "atlassian": {
-      "type": "local",
-      "command": [
-        "uvx",
-        "--python",
-        "3.12",
-        "mcp-atlassian==0.23.1"
-      ],
-      "enabled": true,
-      "environment": {
-        "JIRA_URL": "{env:JIRA_URL}",
-        "JIRA_USERNAME": "{env:JIRA_USERNAME}",
-        "JIRA_API_TOKEN": "{env:JIRA_API_TOKEN}"
-      }
-    },
+      "atlassian": {
+        "type": "local",
+        "codemode": false,
+        "command": [
+          "uvx",
+          "--python",
+          "3.12",
+          "mcp-atlassian==0.23.1"
+        ],
+        "environment": {
+          "JIRA_URL": "{env:JIRA_URL}",
+          "JIRA_USERNAME": "{env:JIRA_USERNAME}",
+          "JIRA_API_TOKEN": "{env:JIRA_API_TOKEN}"
+        }
+      },
 {{ end }}
-    "fff": {
-      "type": "local",
-      "command": [
-        "fff-mcp"
-      ],
-      "enabled": true
-    },
+      "fff": {
+        "type": "local",
+        "command": [
+          "fff-mcp"
+        ]
+      },
 {{ if eq $profile "full" }}
-    "Devops-MCP-hub": {
-      "command": [
-        "{{ .chezmoi.homeDir }}/.local/bin/uvx",
-        "mcp-proxy-for-aws==1.6.5",
-        "https://mcp-devops-services-gpnvcnqr9d.gateway.bedrock-agentcore.us-east-1.amazonaws.com/mcp",
-        "--service",
-        "bedrock-agentcore",
-        "--region",
-        "us-east-1",
-        "--profile",
-        "devops-prod-sso"
-      ],
-      "enabled": true,
-      "type": "local"
-    },
+      "Devops-MCP-hub": {
+        "command": [
+          "{{ .chezmoi.homeDir }}/.local/bin/uvx",
+          "mcp-proxy-for-aws==1.6.5",
+          "https://mcp-devops-services-gpnvcnqr9d.gateway.bedrock-agentcore.us-east-1.amazonaws.com/mcp",
+          "--service",
+          "bedrock-agentcore",
+          "--region",
+          "us-east-1",
+          "--profile",
+          "devops-prod-sso"
+        ],
+        "type": "local"
+      },
 {{ end }}
-    "context7": {
-      "enabled": true,
-      "type": "remote",
-      "url": "https://mcp.context7.com/mcp"
-    }{{ if eq $profile "full" }},
-    "sentry": {
-      "type": "local",
-      "command": [
-        "zsh",
-        "-lc",
-        "SENTRY_ACCESS_TOKEN=$(SENTRY_URL=\"https://sentry.jan.gl\" sentry auth token) exec npx -y @sentry/mcp-server@0.39.0 --host=sentry.jan.gl"
-      ],
-      "enabled": true
-    }{{ end }}
+      "context7": {
+        "type": "remote",
+        "url": "https://mcp.context7.com/mcp"
+      }{{ if eq $profile "full" }},
+      "sentry": {
+        "type": "local",
+        "command": [
+          "zsh",
+          "-lc",
+          "SENTRY_ACCESS_TOKEN=$(SENTRY_URL=\"https://sentry.jan.gl\" sentry auth token) exec npx -y @sentry/mcp-server@0.39.0 --host=sentry.jan.gl"
+        ]
+      }{{ end }}
+    }
+  },
+  "websearch": {
+    "provider": "random"
   }
 }
