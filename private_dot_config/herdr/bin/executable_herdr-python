@@ -20,4 +20,4 @@ fi
 
 helper="$1"
 shift
-exec "$mise" exec --fresh-env -C "$HOME" python@3.10.20 -- python3 "$HOME/.config/herdr/bin/$helper" "$@"
+exec "$mise" exec --fresh-env -C "$HOME" python@3.10.20 -- sh -c 'PATH="$HOME/.local/bin:$PATH" exec python3 "$@"' sh "$HOME/.config/herdr/bin/$helper" "$@"
