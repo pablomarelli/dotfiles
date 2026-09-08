@@ -441,7 +441,7 @@ dryrun_installer() {
 
 make_real_config() {
   local dir="$1" include="$2" os="$3"
-  local profile="${4:-remote}"
+  local profile="${4:-full}"
   local headless="${5:-0}"
   mkdir -p "$dir/home/.config/chezmoi"
   DOTFILES_INCLUDE_SECRETS="$include" DOTFILES_TEST_OS="$os" DOTFILES_INSTALL_PROFILE="$profile" DOTFILES_HEADLESS="$headless" \
@@ -543,11 +543,11 @@ test_dryrun_interactive_wizard_reads_tty_only() {
   dir="$(mktemp -d)"
   make_fixture "$dir"
 
-  run_installer_with_pty "$dir" '3\ny\n' '1\nn\n' dryrun --dryrun
+  run_installer_with_pty "$dir" '1\ny\n' '3\nn\n' dryrun --dryrun
 
   assert_contains "$dir/dryrun.invocation" "argv=sh -s -- --dryrun"
   assert_contains "$dir/dryrun.invocation" "stdin=install.sh"
-  assert_contains "$dir/dryrun.invocation" "ignored_stdin_probe='1\\nn\\n'"
+  assert_contains "$dir/dryrun.invocation" "ignored_stdin_probe='3\\nn\\n'"
   assert_contains "$dir/dryrun.out" "Selected profile: full"
   assert_contains "$dir/dryrun.out" "Secrets choice: with-secrets"
   assert_contains "$dir/dryrun.tty" "Choose install profile"
@@ -602,7 +602,7 @@ test_production_ignores_regular_file_tty_override() {
 
   after="$(cksum <"$fake_tty")"
   [[ "$before" == "$after" ]] || fail "production dryrun modified arbitrary regular-file TTY override"
-  assert_contains "$dir/dryrun.out" "Selected profile: remote"
+  assert_contains "$dir/dryrun.out" "Selected profile: full"
   assert_not_contains "$fake_tty" "Choose install profile"
   [[ ! -s "$dir/events.log" ]] || fail "production regular-file TTY dryrun executed external commands"
 }
@@ -655,11 +655,11 @@ test_default_skips_op_and_secret_apply() {
   run_installer "$dir"
 
   assert_contains "$dir/events.log" "chezmoi init --apply https://github.com/pablomarelli/dotfiles.git"
-  assert_contains "$dir/events.log" "DOTFILES_INCLUDE_SECRETS=0 DOTFILES_INSTALL_PROFILE=remote"
+  assert_contains "$dir/events.log" "DOTFILES_INCLUDE_SECRETS=0 DOTFILES_INSTALL_PROFILE=full"
   assert_not_contains "$dir/events.log" "op "
 }
 
-test_noninteractive_defaults_remote_without_secrets() {
+test_noninteractive_defaults_full_without_secrets() {
   local dir
   dir="$(mktemp -d)"
   make_fixture "$dir"
@@ -667,7 +667,7 @@ test_noninteractive_defaults_remote_without_secrets() {
   run_installer "$dir" --non-interactive
 
   assert_contains "$dir/events.log" "chezmoi init --apply https://github.com/pablomarelli/dotfiles.git"
-  assert_contains "$dir/events.log" "DOTFILES_INCLUDE_SECRETS=0 DOTFILES_INSTALL_PROFILE=remote"
+  assert_contains "$dir/events.log" "DOTFILES_INCLUDE_SECRETS=0 DOTFILES_INSTALL_PROFILE=full"
   assert_not_contains "$dir/events.log" "op "
 }
 
@@ -1411,6 +1411,9 @@ test_direct_template_profile_validation_and_legacy_defaults() {
   fi
   assert_contains "$dir/invalid-error" "expected remote, minimal, or full"
 
+  HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" execute-template --init <"$ROOT_DIR/.chezmoi.toml.tmpl" >"$dir/default-config"
+  assert_contains "$dir/default-config" 'install_profile = "full"'
+
   cat >"$dir/home/.config/chezmoi/chezmoi.toml" <<'EOF'
 [data]
   name = "Legacy config"
@@ -1857,7 +1860,7 @@ EOF
 }
 
 test_default_skips_op_and_secret_apply
-test_noninteractive_defaults_remote_without_secrets
+test_noninteractive_defaults_full_without_secrets
 test_invalid_profile_fails_before_mutation_or_network
 test_dryrun_aliases_and_no_mutation_or_auth
 test_dryrun_help_documents_primary_and_alias

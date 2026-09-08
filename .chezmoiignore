@@ -1,4 +1,4 @@
-{{- $profile := (env "DOTFILES_INSTALL_PROFILE" | default (index . "install_profile") | default "remote") -}}
+{{- $profile := (env "DOTFILES_INSTALL_PROFILE" | default (index . "install_profile") | default "full") -}}
 {{- $headless := or (eq (env "DOTFILES_HEADLESS") "1") ((index . "install_headless") | default false) -}}
 {{- $os := (index . "dotfiles_os") | default .chezmoi.os -}}
 {{- $includeSecrets := (index . "include_secrets") | default false -}}

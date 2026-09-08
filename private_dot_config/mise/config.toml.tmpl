@@ -44,7 +44,7 @@
 # Install specific version: mise install python@3.11.5
 # Set local version: mise use python@3.11 (creates .mise.toml)
 
-{{- $profile := (index . "install_profile") | default "remote" }}
+{{- $profile := (index . "install_profile") | default "full" }}
 [settings]
 idiomatic_version_file_enable_tools = ["python"]
 

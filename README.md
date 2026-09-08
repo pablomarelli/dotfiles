@@ -59,12 +59,12 @@ curl -fsSL https://dotfiles.pablomarelli.dev | sh -s -- --profile minimal --with
 curl -fsSL https://dotfiles.pablomarelli.dev | sh -s -- --profile full --with-secrets
 ```
 
-Noninteractive defaults are `--profile remote --without-secrets`.
+Noninteractive defaults are `--profile full --without-secrets`; use `--profile remote` for the SSH/server setup.
 
-To switch profiles later:
+To switch to the remote profile later:
 
 ```bash
-DOTFILES_INSTALL_PROFILE=minimal DOTFILES_INCLUDE_SECRETS=0 chezmoi init https://github.com/pablomarelli/dotfiles.git
+DOTFILES_INSTALL_PROFILE=remote DOTFILES_INCLUDE_SECRETS=0 chezmoi init https://github.com/pablomarelli/dotfiles.git
 DOTFILES_FORCE_IGNORE_SECRETS=1 chezmoi apply
 "$HOME/.local/bin/mise" install
 ```

@@ -1,5 +1,5 @@
 {{- $os := (index . "dotfiles_os") | default .chezmoi.os -}}
-{{- $profile := (index . "install_profile") | default "remote" -}}
+{{- $profile := (index . "install_profile") | default "full" -}}
 {{- $headless := (index . "install_headless") | default false -}}
 {{ if eq $os "darwin" -}}
 #!/usr/bin/env bash

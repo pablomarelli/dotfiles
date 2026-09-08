@@ -36,7 +36,7 @@ Bootstrap public dotfiles. With a controlling TTY, the default command opens a s
   --profile            Install profile: remote, minimal, or full.
   --with-secrets       Opt in to 1Password-backed templates after verifying access.
   --without-secrets    Skip 1Password-backed templates.
-  --non-interactive    Do not prompt; defaults to remote without secrets.
+  --non-interactive    Do not prompt; defaults to full without secrets.
 EOF
 }
 
@@ -121,16 +121,16 @@ prompt_profile() {
   while :; do
     {
       printf '\nChoose install profile [1]:\n'
-      printf '  1) remote  - SSH/server coding setup, no GUI\n'
+      printf '  1) full    - full personal workstation setup\n'
       printf '  2) minimal - focused workstation tools, no infra/cloud stack\n'
-      printf '  3) full    - full personal workstation setup\n'
+      printf '  3) remote  - SSH/server coding setup, no GUI\n'
       printf 'Profile: '
     } >&4
     IFS= read -r choice <&3 || choice=""
     case "$choice" in
-      ""|1|remote) INSTALL_PROFILE=remote; return 0 ;;
+      ""|1|full) INSTALL_PROFILE=full; return 0 ;;
       2|minimal) INSTALL_PROFILE=minimal; return 0 ;;
-      3|full) INSTALL_PROFILE=full; return 0 ;;
+      3|remote) INSTALL_PROFILE=remote; return 0 ;;
       *) printf 'Invalid choice. Enter 1, 2, or 3.\n' >&4 ;;
     esac
   done
@@ -156,7 +156,7 @@ resolve_wizard_choices() {
     exec 4>&-
   fi
 
-  INSTALL_PROFILE="${INSTALL_PROFILE:-remote}"
+  INSTALL_PROFILE="${INSTALL_PROFILE:-full}"
   valid_profile "$INSTALL_PROFILE" || die "Invalid profile: $INSTALL_PROFILE. Expected one of: remote, minimal, full."
 }
 

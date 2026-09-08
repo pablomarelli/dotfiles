@@ -1,4 +1,4 @@
-{{- $profile := env "DOTFILES_INSTALL_PROFILE" | default "remote" -}}
+{{- $profile := env "DOTFILES_INSTALL_PROFILE" | default "full" -}}
 {{- if not (or (eq $profile "remote") (eq $profile "minimal") (eq $profile "full")) }}{{ fail (printf "invalid DOTFILES_INSTALL_PROFILE %q: expected remote, minimal, or full" $profile) }}{{ end }}
 [data]
   name = "Pablo Marelli"

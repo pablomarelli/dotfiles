@@ -1,5 +1,5 @@
 
-{{- $profile := (index . "install_profile") | default "remote" -}}
+{{- $profile := (index . "install_profile") | default "full" -}}
 export CLAUDE_CODE_NATIVE_CURSOR=1
 
 {{ if eq $profile "full" -}}
