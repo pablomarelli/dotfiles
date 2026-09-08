@@ -975,6 +975,10 @@ test_profile_mise_rendering() {
   local dir expected_remote expected_minimal expected_full
   dir="$(mktemp -d)"
 
+  make_real_config "$dir" 0 linux remote
+  render_with_config "$dir" "$ROOT_DIR/private_dot_config/mise/config.toml.tmpl" "$dir/mise-settings.toml"
+  assert_contains "$dir/mise-settings.toml" 'package_manager = "npm"'
+
   expected_remote="$(cat <<'EOF' | sort
 "github:neovim/neovim" = "latest"
 "npm:@opencode-ai/cli" = { version = "0.0.0-beta-19151", allow_builds = ["@opencode-ai/cli"] }
@@ -984,11 +988,14 @@ delta = "latest"
 fd = "latest"
 fzf = "latest"
 gh = "latest"
+go = "latest"
 jq = "latest"
 node = "24"
+python = "3.10.20"
 ripgrep = "latest"
 tmux = "latest"
 tree-sitter = "latest"
+worktrunk = "latest"
 EOF
 )"
   expected_minimal="$(cat <<'EOF' | sort
@@ -1009,12 +1016,15 @@ eza = "latest"
 fd = "latest"
 fzf = "latest"
 gh = "latest"
+go = "latest"
 jq = "latest"
 lazygit = "latest"
 node = "24"
+python = "3.10.20"
 ripgrep = "latest"
 tmux = "latest"
 tree-sitter = "latest"
+worktrunk = "latest"
 zoxide = "latest"
 EOF
 )"
@@ -1060,6 +1070,7 @@ tlrc = "latest"
 tmux = "latest"
 tree-sitter = "latest"
 usage = "latest"
+worktrunk = "latest"
 xh = "latest"
 zoxide = "latest"
 EOF
@@ -1102,8 +1113,8 @@ test_dryrun_package_sets_match_profile_contracts() {
       (export TEST_OS=linux DOTFILES_HEADLESS="$headless"; dryrun_installer "$dir" --profile "$profile" --without-secrets --non-interactive)
       actual="$(extract_plan_section "$dir/dryrun.out" "Apt packages" | sort | tr '\n' ' ' | sed 's/ $//')"
       case "$profile" in
-        remote) expected="build-essential curl gcc git $ubuntu_extra wget zsh" ;;
-        minimal|full) expected="build-essential curl gcc git $ubuntu_extra wget xclip xdg-utils zsh" ;;
+        remote) expected="build-essential curl gcc git python3-venv $ubuntu_extra unzip wget zsh" ;;
+        minimal|full) expected="build-essential curl gcc git python3-venv $ubuntu_extra unzip wget xclip xdg-utils zsh" ;;
       esac
       expected="$(printf '%s\n' $expected | sort | tr '\n' ' ' | sed 's/ $//')"
       [[ "$actual" == "$expected" ]] || fail "dryrun linux apt drift for $profile headless=$headless: $actual"
@@ -1123,7 +1134,7 @@ test_dryrun_package_sets_match_profile_contracts() {
       case "$profile" in
         remote) expected="gcc git zsh" ;;
         minimal) expected="dark-notify gcc git zsh" ;;
-        full) expected="dark-notify gcc git git-crypt hunk tailspin worktrunk zsh" ;;
+        full) expected="dark-notify gcc git git-crypt hunk tailspin zsh" ;;
       esac
       expected="$(printf '%s\n' $expected | sort | tr '\n' ' ' | sed 's/ $//')"
       [[ "$actual" == "$expected" ]] || fail "dryrun darwin brew package drift for $profile headless=$headless: $actual"
@@ -1242,6 +1253,7 @@ test_profile_package_script_rendering() {
   render_with_config "$dir" "$ROOT_DIR/run_onchange_install-packages-linux.sh.tmpl" "$dir/linux-remote.sh"
   assert_contains "$dir/linux-remote.sh" 'PROFILE="remote"'
   assert_contains "$dir/linux-remote.sh" 'Remote profile: skipping GUI terminal installers'
+  assert_contains "$dir/linux-remote.sh" 'Post-install preflight passed (unzip, go, python3)'
 
   make_real_config "$dir" 0 linux minimal
   render_with_config "$dir" "$ROOT_DIR/run_onchange_install-packages-linux.sh.tmpl" "$dir/linux-minimal.sh"
@@ -1259,6 +1271,7 @@ test_profile_package_script_rendering() {
   render_with_config "$dir" "$ROOT_DIR/run_onchange_install-packages-darwin.sh.tmpl" "$dir/darwin-remote.sh"
   assert_contains "$dir/darwin-remote.sh" 'PROFILE="remote"'
   assert_contains "$dir/darwin-remote.sh" 'BREW_CASKS=()'
+  assert_contains "$dir/darwin-remote.sh" 'Post-install preflight passed (unzip, go, python3)'
 
   make_real_config "$dir" 0 darwin full 1
   render_with_config "$dir" "$ROOT_DIR/run_onchange_install-packages-darwin.sh.tmpl" "$dir/darwin-full-headless.sh"
@@ -1363,7 +1376,8 @@ EOF
   cp "$dir/bin/pi" "$dir/bin/opencode2"
   chmod +x "$dir/bin/pi" "$dir/bin/opencode2"
 
-  HOME="$dir/home" PATH="$dir/bin:/usr/bin:/bin" /bin/zsh -f -c '
+  env -u OPENCODE_API_KEY -u OPENCODE_NTFY_TOKEN \
+    HOME="$dir/home" PATH="$dir/bin:/usr/bin:/bin" /bin/zsh -f -c '
     source "$1"
     [[ -z ${OPENCODE_API_KEY:-} ]]
     [[ -z ${OPENCODE_NTFY_TOKEN:-} ]]
@@ -1451,6 +1465,10 @@ if [ "$1" = "auth" ] && [ "$2" = "token" ]; then printf 'mock-token'; exit 0; fi
 exit 1
 EOF
       chmod +x "$bin/gh"
+      for cmd in unzip go python3; do
+        printf '#!/bin/sh\nexit 0\n' >"$bin/$cmd"
+        chmod +x "$bin/$cmd"
+      done
       BREW_LOG="$dir/brew.log" MISE_LOG="$dir/mise.log" HOME="$home" PATH="$bin:/usr/bin:/bin" bash "$script" >"$output" 2>&1
       actual_pkgs="$(grep '^pkg ' "$dir/brew.log" 2>/dev/null | cut -d' ' -f2- | sort | tr '\n' ' ' | sed 's/ $//' || true)"
       actual_casks="$(grep '^cask ' "$dir/brew.log" 2>/dev/null | cut -d' ' -f2- | sort | tr '\n' ' ' | sed 's/ $//' || true)"
@@ -1458,13 +1476,14 @@ EOF
         remote:*) expected_pkgs="gcc git zsh"; expected_casks="" ;;
         minimal:0) expected_pkgs="dark-notify gcc git zsh"; expected_casks="alacritty ghostty" ;;
         minimal:1) expected_pkgs="dark-notify gcc git zsh"; expected_casks="" ;;
-        full:0) expected_pkgs="dark-notify gcc git git-crypt hunk tailspin worktrunk zsh"; expected_casks="alacritty font-symbols-only-nerd-font ghostty ngrok raycast" ;;
-        full:1) expected_pkgs="dark-notify gcc git git-crypt hunk tailspin worktrunk zsh"; expected_casks="" ;;
+        full:0) expected_pkgs="dark-notify gcc git git-crypt hunk tailspin zsh"; expected_casks="alacritty font-symbols-only-nerd-font ghostty ngrok raycast" ;;
+        full:1) expected_pkgs="dark-notify gcc git git-crypt hunk tailspin zsh"; expected_casks="" ;;
       esac
       [[ "$actual_pkgs" == "$expected_pkgs" ]] || fail "unexpected darwin packages for $profile headless=$headless: $actual_pkgs"
       [[ "$actual_casks" == "$expected_casks" ]] || fail "unexpected darwin casks for $profile headless=$headless: $actual_casks"
       assert_contains "$dir/mise.log" "GITHUB_TOKEN="
       assert_not_contains "$dir/mise.log" "GITHUB_TOKEN=present"
+      assert_contains "$output" "Post-install preflight passed (unzip, go, python3)"
     done
   done
 
@@ -1557,15 +1576,21 @@ EOF
 printf 'mise %s\n' "$*" >>"$MISE_LOG"
 EOF
       chmod +x "$bin/mise"
+      printf '#!/bin/sh\nexit 1\n' >"$bin/gh"
+      chmod +x "$bin/gh"
+      for cmd in unzip go python3; do
+        printf '#!/bin/sh\nexit 0\n' >"$bin/$cmd"
+        chmod +x "$bin/$cmd"
+      done
       APT_LOG="$dir/apt.log" MISE_LOG="$dir/mise.log" TEST_BIN_DIR="$bin" HOME="$home" PATH="$bin:/usr/bin:/bin" bash "$script" >"$output" 2>&1
       actual="$(sort "$dir/apt.log" | cut -d' ' -f2- | tr '\n' ' ' | sed 's/ $//')"
       case "$profile:$headless" in
-        remote:*) expected="build-essential curl gcc git${ubuntu_extra} wget zsh" ;;
+        remote:*) expected="build-essential curl gcc git${ubuntu_extra} python3-venv unzip wget zsh" ;;
         minimal:0|full:0)
-          expected="build-essential curl gcc git${ubuntu_extra} wget xclip xdg-utils zsh"
+          expected="build-essential curl gcc git${ubuntu_extra} python3-venv unzip wget xclip xdg-utils zsh"
           command -v alacritty >/dev/null 2>&1 || expected="alacritty $expected"
           ;;
-        minimal:1|full:1) expected="build-essential curl gcc git${ubuntu_extra} wget xclip xdg-utils zsh" ;;
+        minimal:1|full:1) expected="build-essential curl gcc git${ubuntu_extra} python3-venv unzip wget xclip xdg-utils zsh" ;;
       esac
       expected="$(printf '%s\n' $expected | sort | tr '\n' ' ' | sed 's/ $//')"
       [[ "$actual" == "$expected" ]] || fail "unexpected linux packages for $profile headless=$headless: $actual"
@@ -1574,6 +1599,7 @@ EOF
       elif [[ "$headless" == "1" ]]; then
         assert_contains "$output" "Headless mode: skipping Ghostty and Alacritty"
       fi
+      assert_contains "$output" "Post-install preflight passed (unzip, go, python3)"
     done
   done
 }
@@ -1726,11 +1752,19 @@ esac
 EOF
   chmod +x "$bin/curl"
 
+  printf '#!/bin/sh\nexit 1\n' >"$bin/gh"
+  chmod +x "$bin/gh"
+  for cmd in unzip go python3; do
+    printf '#!/bin/sh\nexit 0\n' >"$bin/$cmd"
+    chmod +x "$bin/$cmd"
+  done
+
   MISE_LOG="$dir/mise.log" HOME="$home" DOTFILES_HEADLESS=1 DOTFILES_TEST_OS_RELEASE="$dir/os-release" PATH="$bin:/usr/bin:/bin" bash "$script" >"$output" 2>&1
 
   assert_contains "$output" "Running mise install for"
   [[ -x "$home/.local/bin/mise" ]] || fail "mise installer did not create expected artifact"
   assert_contains "$dir/mise.log" "mise install"
+  assert_contains "$output" "Post-install preflight passed (unzip, go, python3)"
 }
 
 test_chezmoi_installer_download_failure_is_not_executed() {

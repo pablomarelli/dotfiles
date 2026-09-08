@@ -35,6 +35,7 @@ echo "==> Linux bootstrap"
 #   - zsh, git, gcc: system-level tools
 #   - build-essential: needed by cargo/python/gcc builds
 #   - curl, wget: needed to bootstrap mise itself
+#   - unzip, python3-venv: runtime bootstrap dependencies
 #   - alacritty: terminal emulator (not in mise)
 APT_PKGS=(
   zsh             # shell
@@ -43,6 +44,8 @@ APT_PKGS=(
   build-essential # make, libc-dev, etc. (needed by rust/python builds)
   curl            # needed to install mise
   wget            # general download tool
+  unzip           # archive extraction used by tooling
+  python3-venv    # Python virtual environment support
 )
 
 if [[ "$PROFILE" != "remote" ]]; then
@@ -117,6 +120,12 @@ if ! mise install; then
   exit 1
 fi
 echo -e "${GREEN}✓${NC} mise tools installed"
+
+export PATH="$HOME/.local/share/mise/shims:$PATH"
+for cmd in unzip go python3; do
+  command_exists "$cmd" || { echo -e "${RED}✗${NC} Post-install preflight failed: $cmd is not on PATH"; exit 1; }
+done
+echo -e "${GREEN}✓${NC} Post-install preflight passed (unzip, go, python3)"
 
 echo ""
 echo -e "${GREEN}✓${NC} Linux bootstrap complete. Restart your terminal or run: exec zsh"

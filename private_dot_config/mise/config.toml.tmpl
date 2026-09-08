@@ -48,6 +48,9 @@
 [settings]
 idiomatic_version_file_enable_tools = ["python"]
 
+[settings.npm]
+package_manager = "npm"
+
 [tools]
 node = "24"
 jq = "latest"
@@ -62,6 +65,9 @@ chezmoi = "2.70.0"
 "github:neovim/neovim" = "latest"
 "npm:@opencode-ai/cli" = { version = "0.0.0-beta-19151", allow_builds = ["@opencode-ai/cli"] }
 "npm:@earendil-works/pi-coding-agent" = "0.84.4"
+go = "latest"
+python = "3.10.20"
+worktrunk = "latest"
 {{ if or (eq $profile "minimal") (eq $profile "full") }}
 zoxide = "latest"
 bat = "latest"
@@ -76,10 +82,8 @@ rust = "latest"
 "github:ogulcancelik/herdr" = "latest"
 {{ end }}
 {{ if eq $profile "full" }}
-go = "latest"
 lazydocker = "latest"
 kubectx = "latest"
-python = "3.10.20"
 "npm:sql-formatter" = "latest"
 k9s = "latest"
 glow = "latest"

@@ -55,7 +55,6 @@ if [[ "$PROFILE" == "full" ]]; then
   dark-notify   # macOS appearance watcher for Neovim
   hunk          # terminal diff viewer
   tailspin      # log highlighter
-  worktrunk     # work tool
   )
 elif [[ "$PROFILE" == "minimal" ]]; then
   BREW_PKGS+=(dark-notify)
@@ -128,6 +127,12 @@ if ! mise install; then
   exit 1
 fi
 echo -e "${GREEN}✓${NC} mise tools installed"
+
+export PATH="$HOME/.local/share/mise/shims:$PATH"
+for cmd in unzip go python3; do
+  command_exists "$cmd" || { echo -e "${RED}✗${NC} Post-install preflight failed: $cmd is not on PATH"; exit 1; }
+done
+echo -e "${GREEN}✓${NC} Post-install preflight passed (unzip, go, python3)"
 
 echo ""
 echo -e "${GREEN}✓${NC} macOS bootstrap complete. Restart your terminal or run: exec zsh"

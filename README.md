@@ -224,6 +224,7 @@ All CLI tools are managed via [mise](https://mise.jdx.dev) in `~/.config/mise/co
 | television | Fuzzy finder TUI |
 | opencode2 | OpenCode 2 beta AI coding assistant |
 | pi | Pi coding agent |
+| worktrunk | Git worktree management |
 | 1Password CLI (`op`) | Optional secret bootstrap dependency, installed by `--with-secrets` when supported |
 | chezmoi | Dotfiles manager |
 | go / node / python / rust | Languages |

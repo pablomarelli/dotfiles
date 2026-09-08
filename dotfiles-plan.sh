@@ -27,7 +27,10 @@ plan_mise_tools() {
     'chezmoi = "2.70.0"' \
     '"github:neovim/neovim" = "latest"' \
     '"npm:@opencode-ai/cli" = { version = "0.0.0-beta-19151", allow_builds = ["@opencode-ai/cli"] }' \
-    '"npm:@earendil-works/pi-coding-agent" = "0.84.4"'
+    '"npm:@earendil-works/pi-coding-agent" = "0.84.4"' \
+    'go = "latest"' \
+    'python = "3.10.20"' \
+    'worktrunk = "latest"'
   case "$profile" in
     minimal|full)
       plan_join_words \
@@ -46,10 +49,8 @@ plan_mise_tools() {
   esac
   if [ "$profile" = "full" ]; then
     plan_join_words \
-      'go = "latest"' \
       'lazydocker = "latest"' \
       'kubectx = "latest"' \
-      'python = "3.10.20"' \
       '"npm:sql-formatter" = "latest"' \
       'k9s = "latest"' \
       'glow = "latest"' \
@@ -71,7 +72,7 @@ plan_mise_tools() {
 plan_linux_apt_packages() {
   profile="$1"
   ubuntu="$2"
-  set -- zsh git gcc build-essential curl wget
+  set -- zsh git gcc build-essential curl wget unzip python3-venv
   if [ "$profile" != "remote" ]; then
     set -- "$@" xclip xdg-utils
   fi
@@ -99,7 +100,7 @@ plan_darwin_brew_packages() {
       set -- "$@" dark-notify
       ;;
     full)
-      set -- "$@" git-crypt dark-notify hunk tailspin worktrunk
+      set -- "$@" git-crypt dark-notify hunk tailspin
       ;;
   esac
   plan_join_words "$@"
