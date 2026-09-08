@@ -1,15 +1,21 @@
 # Invoked by herdr-python to avoid project-specific mise Python settings.
 import argparse
 import json
+import os
 import subprocess
+from collections.abc import Mapping
 from pathlib import Path
 
 
 VIM_NAMES = {"vim", "nvim", "vimdiff", "nvimdiff"}
 
 
+def herdr_binary(env: Mapping[str, str]) -> str:
+    return env.get("HERDR_BIN_PATH", "herdr")
+
+
 def herdr(*args: str) -> str:
-    result = subprocess.run(("herdr", *args), text=True, capture_output=True)
+    result = subprocess.run((herdr_binary(os.environ), *args), text=True, capture_output=True)
     if result.returncode != 0:
         raise SystemExit(result.stderr.strip() or f"herdr {' '.join(args)} failed")
     return result.stdout
@@ -60,6 +66,9 @@ def route(process_info: dict, direction: str, key: str) -> tuple[str, str]:
 
 
 def self_check() -> None:
+    assert herdr_binary({}) == "herdr"
+    assert herdr_binary({"HERDR_BIN_PATH": "/current/herdr"}) == "/current/herdr"
+
     nvim = {
         "foreground_process_group_id": 101,
         "foreground_processes": [{"name": "nvim", "pid": 101}],
