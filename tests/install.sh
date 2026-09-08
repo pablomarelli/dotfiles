@@ -981,8 +981,8 @@ test_profile_mise_rendering() {
 
   expected_remote="$(cat <<'EOF' | sort
 "github:neovim/neovim" = "latest"
-"npm:@opencode-ai/cli" = { version = "0.0.0-beta-19151", allow_builds = ["@opencode-ai/cli"] }
-"npm:@earendil-works/pi-coding-agent" = "0.84.4"
+"npm:@opencode-ai/cli" = { version = "latest", allow_builds = ["@opencode-ai/cli"] }
+"npm:@earendil-works/pi-coding-agent" = "latest"
 chezmoi = "2.70.0"
 delta = "latest"
 fd = "latest"
@@ -991,7 +991,9 @@ gh = "latest"
 go = "latest"
 jq = "latest"
 node = "24"
-python = "3.10.20"
+opencode = "latest"
+"npm:obsidian-headless" = "latest"
+python = "3.14.*"
 ripgrep = "latest"
 tmux = "latest"
 tree-sitter = "latest"
@@ -1006,8 +1008,9 @@ EOF
 rust = "latest"
 starship = "latest"
 "github:ogulcancelik/herdr" = "latest"
-"npm:@earendil-works/pi-coding-agent" = "0.84.4"
-"npm:@opencode-ai/cli" = { version = "0.0.0-beta-19151", allow_builds = ["@opencode-ai/cli"] }
+"npm:@earendil-works/pi-coding-agent" = "latest"
+"npm:@opencode-ai/cli" = { version = "latest", allow_builds = ["@opencode-ai/cli"] }
+"npm:obsidian-headless" = "latest"
 ast-grep = "latest"
 bat = "latest"
 chezmoi = "2.70.0"
@@ -1020,7 +1023,8 @@ go = "latest"
 jq = "latest"
 lazygit = "latest"
 node = "24"
-python = "3.10.20"
+opencode = "latest"
+python = "3.14.*"
 ripgrep = "latest"
 tmux = "latest"
 tree-sitter = "latest"
@@ -1035,8 +1039,9 @@ EOF
 "github:neovim/neovim" = "latest"
 "github:ogulcancelik/herdr" = "latest"
 starship = "latest"
-"npm:@earendil-works/pi-coding-agent" = "0.84.4"
-"npm:@opencode-ai/cli" = { version = "0.0.0-beta-19151", allow_builds = ["@opencode-ai/cli"] }
+"npm:@earendil-works/pi-coding-agent" = "latest"
+"npm:@opencode-ai/cli" = { version = "latest", allow_builds = ["@opencode-ai/cli"] }
+"npm:obsidian-headless" = "latest"
 "npm:sql-formatter" = "latest"
 ast-grep = "latest"
 bat = "latest"
@@ -1060,9 +1065,10 @@ kubectx = "latest"
 lazydocker = "latest"
 lazygit = "latest"
 node = "24"
+opencode = "latest"
 opentofu = "latest"
 pipx = "latest"
-python = "3.10.20"
+python = "3.14.*"
 ripgrep = "latest"
 rust = "latest"
 terragrunt = "latest"
@@ -1104,26 +1110,19 @@ test_dryrun_mise_sets_match_rendered_templates() {
 }
 
 test_dryrun_package_sets_match_profile_contracts() {
-  local dir profile headless section expected actual ubuntu_extra
+  local dir profile headless expected actual
   dir="$(mktemp -d)"
   make_fixture "$dir"
-  ubuntu_extra="software-properties-common"
   for profile in remote minimal full; do
     for headless in 0 1; do
       (export TEST_OS=linux DOTFILES_HEADLESS="$headless"; dryrun_installer "$dir" --profile "$profile" --without-secrets --non-interactive)
       actual="$(extract_plan_section "$dir/dryrun.out" "Apt packages" | sort | tr '\n' ' ' | sed 's/ $//')"
       case "$profile" in
-        remote) expected="build-essential curl gcc git python3-venv $ubuntu_extra unzip wget zsh" ;;
-        minimal|full) expected="build-essential curl gcc git python3-venv $ubuntu_extra unzip wget xclip xdg-utils zsh" ;;
+        remote) expected="build-essential curl gcc git python3-venv unzip wget zsh" ;;
+        minimal|full) expected="build-essential curl gcc git python3-venv unzip wget xclip xdg-utils zsh" ;;
       esac
       expected="$(printf '%s\n' $expected | sort | tr '\n' ' ' | sed 's/ $//')"
       [[ "$actual" == "$expected" ]] || fail "dryrun linux apt drift for $profile headless=$headless: $actual"
-      section="$(extract_plan_section "$dir/dryrun.out" "Additional terminal packages/installers" | sort | tr '\n' ' ' | sed 's/ $//')"
-      if [[ "$profile" != "remote" && "$headless" == "0" ]]; then
-        [[ "$section" == "alacritty" ]] || fail "dryrun linux terminal drift for $profile headless=$headless: $section"
-      else
-        [[ "$section" == "none" ]] || fail "dryrun linux terminal should be none for $profile headless=$headless: $section"
-      fi
     done
   done
 
@@ -1151,8 +1150,8 @@ test_dryrun_package_sets_match_profile_contracts() {
       actual="$(extract_plan_section "$dir/dryrun.out" "Homebrew casks" | sort | tr '\n' ' ' | sed 's/ $//')"
       case "$profile:$headless" in
         remote:*|minimal:1|full:1) expected="none" ;;
-        minimal:0) expected="alacritty ghostty" ;;
-        full:0) expected="alacritty font-symbols-only-nerd-font ghostty ngrok raycast" ;;
+        minimal:0) expected="ghostty" ;;
+        full:0) expected="font-symbols-only-nerd-font ghostty ngrok raycast" ;;
       esac
       expected="$(printf '%s\n' $expected | sort | tr '\n' ' ' | sed 's/ $//')"
       [[ "$actual" == "$expected" ]] || fail "dryrun darwin cask drift for $profile headless=$headless: $actual"
@@ -1194,7 +1193,6 @@ test_headless_gui_config_ignore_matches_plan() {
     make_real_config "$dir" 0 linux "$profile" 1
     HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" ignored >"$dir/ignored-headless-$profile"
     assert_contains "$dir/ignored-headless-$profile" ".config/ghostty"
-    assert_contains "$dir/ignored-headless-$profile" ".config/alacritty"
     (export TEST_OS=linux DOTFILES_HEADLESS=1; dryrun_installer "$dir" --profile "$profile" --without-secrets --non-interactive)
     assert_contains "$dir/dryrun.out" "terminal GUI configuration and installation"
 
@@ -1220,10 +1218,8 @@ test_dryrun_external_contacts_are_complete() {
           assert_contains "$dir/dryrun.out" "1Password apt repository/key/policy downloads"
           if [[ "$profile" != "remote" && "$headless" == "0" ]]; then
             assert_contains "$dir/dryrun.out" "terminal installer: Ghostty Ubuntu installer https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh"
-            assert_contains "$dir/dryrun.out" "terminal package source: Alacritty Ubuntu PPA ppa:aslatter/ppa"
           else
             assert_not_contains "$dir/dryrun.out" "Ghostty Ubuntu installer"
-            assert_not_contains "$dir/dryrun.out" "Alacritty Ubuntu PPA"
           fi
         else
           assert_contains "$dir/dryrun.out" "1Password CLI Homebrew cask: 1password-cli"
@@ -1420,7 +1416,7 @@ test_direct_template_profile_validation_and_legacy_defaults() {
 EOF
   HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" ignored >"$dir/legacy-ignored"
   render_with_config "$dir" "$ROOT_DIR/private_dot_config/mise/config.toml.tmpl" "$dir/legacy-mise.toml"
-  assert_contains "$dir/legacy-mise.toml" '"npm:@earendil-works/pi-coding-agent" = "0.84.4"'
+  assert_contains "$dir/legacy-mise.toml" '"npm:@earendil-works/pi-coding-agent" = "latest"'
 }
 
 test_package_scripts_track_mise_config() {
@@ -1477,9 +1473,9 @@ EOF
       actual_casks="$(grep '^cask ' "$dir/brew.log" 2>/dev/null | cut -d' ' -f2- | sort | tr '\n' ' ' | sed 's/ $//' || true)"
       case "$profile:$headless" in
         remote:*) expected_pkgs="gcc git zsh"; expected_casks="" ;;
-        minimal:0) expected_pkgs="dark-notify gcc git zsh"; expected_casks="alacritty ghostty" ;;
+        minimal:0) expected_pkgs="dark-notify gcc git zsh"; expected_casks="ghostty" ;;
         minimal:1) expected_pkgs="dark-notify gcc git zsh"; expected_casks="" ;;
-        full:0) expected_pkgs="dark-notify gcc git git-crypt hunk tailspin zsh"; expected_casks="alacritty font-symbols-only-nerd-font ghostty ngrok raycast" ;;
+        full:0) expected_pkgs="dark-notify gcc git git-crypt hunk tailspin zsh"; expected_casks="font-symbols-only-nerd-font ghostty ngrok raycast" ;;
         full:1) expected_pkgs="dark-notify gcc git git-crypt hunk tailspin zsh"; expected_casks="" ;;
       esac
       [[ "$actual_pkgs" == "$expected_pkgs" ]] || fail "unexpected darwin packages for $profile headless=$headless: $actual_pkgs"
@@ -1521,12 +1517,7 @@ EOF
 }
 
 test_linux_package_sets_by_profile_headless_on_linux() {
-  local dir bin home script output profile headless expected actual ubuntu_extra
-  [[ -r /etc/os-release ]] || return 0
-  ubuntu_extra=""
-  if grep -Eq '^ID=ubuntu' /etc/os-release; then
-    ubuntu_extra=" software-properties-common"
-  fi
+  local dir bin home script output profile headless expected actual
   for profile in remote minimal full; do
     for headless in 0 1; do
       dir="$(mktemp -d)"
@@ -1542,9 +1533,6 @@ test_linux_package_sets_by_profile_headless_on_linux() {
 case "$1" in
   apt)
     if [ "$2" = "install" ]; then printf 'pkg %s\n' "$4" >>"$APT_LOG"; fi
-    exit 0
-    ;;
-  add-apt-repository)
     exit 0
     ;;
   chown)
@@ -1587,20 +1575,16 @@ EOF
       done
       APT_LOG="$dir/apt.log" MISE_LOG="$dir/mise.log" TEST_BIN_DIR="$bin" HOME="$home" PATH="$bin:/usr/bin:/bin" bash "$script" >"$output" 2>&1
       actual="$(sort "$dir/apt.log" | cut -d' ' -f2- | tr '\n' ' ' | sed 's/ $//')"
-      case "$profile:$headless" in
-        remote:*) expected="build-essential curl gcc git${ubuntu_extra} python3-venv unzip wget zsh" ;;
-        minimal:0|full:0)
-          expected="build-essential curl gcc git${ubuntu_extra} python3-venv unzip wget xclip xdg-utils zsh"
-          command -v alacritty >/dev/null 2>&1 || expected="alacritty $expected"
-          ;;
-        minimal:1|full:1) expected="build-essential curl gcc git${ubuntu_extra} python3-venv unzip wget xclip xdg-utils zsh" ;;
+      case "$profile" in
+        remote) expected="build-essential curl gcc git python3-venv unzip wget zsh" ;;
+        minimal|full) expected="build-essential curl gcc git python3-venv unzip wget xclip xdg-utils zsh" ;;
       esac
       expected="$(printf '%s\n' $expected | sort | tr '\n' ' ' | sed 's/ $//')"
       [[ "$actual" == "$expected" ]] || fail "unexpected linux packages for $profile headless=$headless: $actual"
       if [[ "$profile" == "remote" ]]; then
         assert_contains "$output" "Remote profile: skipping GUI terminal installers"
       elif [[ "$headless" == "1" ]]; then
-        assert_contains "$output" "Headless mode: skipping Ghostty and Alacritty"
+        assert_contains "$output" "Headless mode: skipping Ghostty"
       fi
       assert_contains "$output" "Post-install preflight passed (unzip, go, python3)"
     done

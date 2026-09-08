@@ -136,7 +136,6 @@ GitHub Actions runs the lightweight installer/template tests. The Docker sandbox
 | File | Description |
 |---|---|
 | `~/.config/ghostty/` | Ghostty config + 40 GLSL shaders — macOS + Linux |
-| `~/.config/alacritty/alacritty.toml` | Alacritty config |
 
 ### Multiplexer
 | File | Description |
@@ -185,7 +184,6 @@ GitHub Actions runs the lightweight installer/template tests. The Docker sandbox
 | Neovim | ✓ | ✓ |
 | tmux | ✓ | ✓ |
 | Ghostty | ✓ | ✓ |
-| Alacritty | ✓ | ✓ |
 | Starship | ✓ | ✓ |
 | mise tools | ✓ | ✓ |
 | AeroSpace | ✓ | — |
@@ -234,8 +232,7 @@ macOS-only (via Homebrew):
 
 | Tool | Description |
 |---|---|
-| ghostty | Primary terminal emulator |
-| alacritty | Secondary terminal emulator |
+| ghostty | Terminal emulator |
 | raycast | Launcher |
 | git-crypt | Git encryption |
 | hunk | Terminal diff viewer |

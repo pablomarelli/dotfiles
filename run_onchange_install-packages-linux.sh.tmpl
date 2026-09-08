@@ -26,8 +26,6 @@ download_and_run() {
   trap - RETURN
 }
 
-. "${DOTFILES_TEST_OS_RELEASE:-/etc/os-release}"
-
 echo "==> Linux bootstrap"
 
 # ── apt packages ──────────────────────────────────────────────────────────────
@@ -36,7 +34,6 @@ echo "==> Linux bootstrap"
 #   - build-essential: needed by cargo/python/gcc builds
 #   - curl, wget: needed to bootstrap mise itself
 #   - unzip, python3-venv: runtime bootstrap dependencies
-#   - alacritty: terminal emulator (not in mise)
 APT_PKGS=(
   zsh             # shell
   git             # version control
@@ -50,10 +47,6 @@ APT_PKGS=(
 
 if [[ "$PROFILE" != "remote" ]]; then
   APT_PKGS+=(xclip xdg-utils)
-fi
-
-if [[ "$ID" == "ubuntu" ]]; then
-  APT_PKGS+=(software-properties-common) # add-apt-repository
 fi
 
 echo -e "${YELLOW}→${NC} Updating apt..."
@@ -78,20 +71,8 @@ if [[ "$PROFILE" != "remote" && "$HEADLESS" != "1" ]]; then
   else
     echo -e "${GREEN}✓${NC} ghostty already installed"
   fi
-
-  # ── Alacritty (PPA, not in mise) ────────────────────────────────────────────
-  if ! command_exists alacritty; then
-    echo -e "${YELLOW}→${NC} Installing alacritty..."
-    if [[ "$ID" == "ubuntu" ]]; then
-      sudo add-apt-repository ppa:aslatter/ppa -y || true
-      sudo apt update -qq
-    fi
-    sudo apt install -y alacritty
-  else
-    echo -e "${GREEN}✓${NC} alacritty already installed"
-  fi
 elif [[ "$PROFILE" != "remote" ]]; then
-  echo -e "${YELLOW}→${NC} Headless mode: skipping Ghostty and Alacritty"
+  echo -e "${YELLOW}→${NC} Headless mode: skipping Ghostty"
 else
   echo -e "${YELLOW}→${NC} Remote profile: skipping GUI terminal installers"
 fi

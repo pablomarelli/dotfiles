@@ -42,7 +42,7 @@ command_exists brew || { echo -e "${RED}✗${NC} Homebrew installer completed bu
 # ── Homebrew packages ─────────────────────────────────────────────────────────
 # Only things that can't or shouldn't be managed by mise:
 #   - zsh, git, gcc: system-level tools, better via brew on macOS
-#   - ghostty, alacritty: GUI apps / terminal emulators, macOS-only
+#   - ghostty: GUI terminal emulator, macOS-only
 BREW_PKGS=(
   zsh           # shell
   git           # version control
@@ -62,7 +62,7 @@ fi
 
 BREW_CASKS=()
 if [[ "$PROFILE" != "remote" && "$HEADLESS" != "1" ]]; then
-  BREW_CASKS+=(ghostty alacritty)
+  BREW_CASKS+=(ghostty)
   if [[ "$PROFILE" == "full" ]]; then
     BREW_CASKS+=(raycast ngrok font-symbols-only-nerd-font)
   fi

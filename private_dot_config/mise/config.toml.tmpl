@@ -63,10 +63,12 @@ delta = "latest"
 tree-sitter = "latest"
 chezmoi = "2.70.0"
 "github:neovim/neovim" = "latest"
-"npm:@opencode-ai/cli" = { version = "0.0.0-beta-19151", allow_builds = ["@opencode-ai/cli"] }
-"npm:@earendil-works/pi-coding-agent" = "0.84.4"
+opencode = "latest"
+"npm:@opencode-ai/cli" = { version = "latest", allow_builds = ["@opencode-ai/cli"] }
+"npm:@earendil-works/pi-coding-agent" = "latest"
+"npm:obsidian-headless" = "latest"
 go = "latest"
-python = "3.10.20"
+python = "3.14.*"
 worktrunk = "latest"
 {{ if or (eq $profile "minimal") (eq $profile "full") }}
 zoxide = "latest"

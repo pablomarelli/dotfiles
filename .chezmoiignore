@@ -79,7 +79,6 @@ tests
 {{ end }}
 
 {{ if eq $profile "remote" }}
-.config/alacritty/**
 .config/ghostty/**
 .config/herdr/**
 .config/navi/**
@@ -96,7 +95,6 @@ run_onchange_install-zsh-plugins.sh
 {{ end }}
 
 {{ if and (ne $profile "remote") $headless }}
-.config/alacritty/**
 .config/ghostty/**
 {{ end }}
 

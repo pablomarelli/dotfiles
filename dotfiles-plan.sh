@@ -26,10 +26,12 @@ plan_mise_tools() {
     'tree-sitter = "latest"' \
     'chezmoi = "2.70.0"' \
     '"github:neovim/neovim" = "latest"' \
-    '"npm:@opencode-ai/cli" = { version = "0.0.0-beta-19151", allow_builds = ["@opencode-ai/cli"] }' \
-    '"npm:@earendil-works/pi-coding-agent" = "0.84.4"' \
+    'opencode = "latest"' \
+    '"npm:@opencode-ai/cli" = { version = "latest", allow_builds = ["@opencode-ai/cli"] }' \
+    '"npm:@earendil-works/pi-coding-agent" = "latest"' \
+    '"npm:obsidian-headless" = "latest"' \
     'go = "latest"' \
-    'python = "3.10.20"' \
+    'python = "3.14.*"' \
     'worktrunk = "latest"'
   case "$profile" in
     minimal|full)
@@ -71,25 +73,11 @@ plan_mise_tools() {
 
 plan_linux_apt_packages() {
   profile="$1"
-  ubuntu="$2"
   set -- zsh git gcc build-essential curl wget unzip python3-venv
   if [ "$profile" != "remote" ]; then
     set -- "$@" xclip xdg-utils
   fi
-  if [ "$ubuntu" = "1" ]; then
-    set -- "$@" software-properties-common
-  fi
   plan_join_words "$@"
-}
-
-plan_linux_terminal_packages() {
-  profile="$1"
-  headless="$2"
-  if [ "$profile" != "remote" ] && [ "$headless" != "1" ]; then
-    plan_join_words alacritty
-  else
-    plan_join_words
-  fi
 }
 
 plan_darwin_brew_packages() {
@@ -127,9 +115,9 @@ plan_darwin_brew_casks() {
   if [ "$profile" = "remote" ] || [ "$headless" = "1" ]; then
     plan_join_words
   elif [ "$profile" = "minimal" ]; then
-    plan_join_words ghostty alacritty
+    plan_join_words ghostty
   else
-    plan_join_words ghostty alacritty raycast ngrok font-symbols-only-nerd-font
+    plan_join_words ghostty raycast ngrok font-symbols-only-nerd-font
   fi
 }
 
@@ -169,9 +157,7 @@ plan_external_downloads() {
     set -- "$@" "Homebrew installer: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh (only if brew is missing)"
   fi
   if [ "$os_key" = "linux" ] && [ "$profile" != "remote" ] && [ "$headless" != "1" ]; then
-    set -- "$@" \
-      "terminal installer: Ghostty Ubuntu installer https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh" \
-      "terminal package source: Alacritty Ubuntu PPA ppa:aslatter/ppa (Ubuntu only)"
+    set -- "$@" "terminal installer: Ghostty Ubuntu installer https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh"
   fi
   if [ "$profile" != "remote" ]; then
     set -- "$@" \
@@ -231,8 +217,7 @@ main() {
   case "$os_key" in
     linux)
       print_plan_lines "System package manager/action" "apt: update package index" "apt: install packages listed below" "sudo: required during real install"
-      plan_linux_apt_packages "$profile" "$ubuntu" | print_plan_stream "Apt packages"
-      plan_linux_terminal_packages "$profile" "$headless" | print_plan_stream "Additional terminal packages/installers"
+      plan_linux_apt_packages "$profile" | print_plan_stream "Apt packages"
       ;;
     darwin)
       print_plan_lines "System package manager/action" "Homebrew: tap/install packages and casks listed below"
