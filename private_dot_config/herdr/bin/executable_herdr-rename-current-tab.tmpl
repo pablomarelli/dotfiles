@@ -21,21 +21,8 @@ def label_for(cwd: Path) -> str:
     if not top:
         return cwd.name or "~"
 
-    worktrees = run("git", "worktree", "list", "--porcelain", cwd=cwd)
-    branch = None
-    main = None
-    current = str(Path(top).resolve())
-    if worktrees:
-        active = None
-        for raw in worktrees.splitlines():
-            if raw.startswith("worktree "):
-                active = raw.removeprefix("worktree ")
-                main = main or active
-            elif active == current and raw.startswith("branch refs/heads/"):
-                branch = raw.removeprefix("branch refs/heads/")
-    if main and current != str(Path(main).resolve()) and branch:
-        return Path(branch).name
-    return Path(top).name
+    branch = run("git", "branch", "--show-current", cwd=cwd)
+    return Path(branch).name if branch else Path(top).name
 
 
 def main() -> int:

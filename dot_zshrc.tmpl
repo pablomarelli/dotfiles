@@ -62,8 +62,8 @@ if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)
 autoload -Uz add-zsh-hook
 herdr_rename_tab_on_chpwd() {
   [[ $HERDR_ENV == 1 ]] || return 0
-  command -v herdr-python >/dev/null 2>&1 || return 0
-  herdr-python herdr-rename-current-tab >/dev/null 2>&1 || true
+  [[ -x "$HOME/.config/herdr/bin/herdr-python" ]] || return 0
+  "$HOME/.config/herdr/bin/herdr-python" herdr-rename-current-tab >/dev/null 2>&1 || true
 }
 add-zsh-hook chpwd herdr_rename_tab_on_chpwd
 

@@ -20,4 +20,11 @@ fi
 
 helper="$1"
 shift
+<<<<<<< Updated upstream
 exec "$mise" exec --fresh-env -C "$HOME" "python@3.14.*" -- sh -c 'PATH="$HOME/.local/bin:$PATH" exec python3 "$@"' sh "$HOME/.config/herdr/bin/$helper" "$@"
+||||||| Stash base
+exec "$mise" exec --fresh-env -C "$HOME" python@3.10.20 -- sh -c 'PATH="$HOME/.local/bin:$PATH" exec python3 "$@"' sh "$HOME/.config/herdr/bin/$helper" "$@"
+=======
+python="$("$mise" where python@3.10.20)/bin/python3"
+PATH="$HOME/.local/bin:$PATH" exec "$python" "$HOME/.config/herdr/bin/$helper" "$@"
+>>>>>>> Stashed changes
