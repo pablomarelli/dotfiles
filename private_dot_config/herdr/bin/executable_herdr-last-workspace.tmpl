@@ -2,6 +2,7 @@
 import argparse
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -36,7 +37,14 @@ def write_state(workspace_id: str) -> None:
     STATE.write_text(workspace_id + "\n")
 
 
+def ensure_history_watcher() -> None:
+    # Keeps history current when focus changes outside this wrapper (Agents tab, sidebar).
+    script = Path(__file__).resolve().with_name("herdr-workspace-history")
+    subprocess.run((sys.executable, str(script), "--ensure"), capture_output=True)
+
+
 def main() -> int:
+    ensure_history_watcher()
     parser = argparse.ArgumentParser(description="Toggle to the last Herdr workspace.")
     parser.add_argument("--dry-run", action="store_true", help="show the target without focusing it")
     parser.add_argument("--status", action="store_true", help="show current stored state")
@@ -52,7 +60,6 @@ def main() -> int:
     ids = {w["workspace_id"] for w in items}
     others = [w for w in items if w["workspace_id"] != current_id]
 
-    # ponytail: no Herdr focus-change hook, so history updates only when this wrapper runs.
     target = previous if previous in ids and previous != current_id else None
     if target is None and len(others) == 1:
         target = others[0]["workspace_id"]

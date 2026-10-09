@@ -18,11 +18,10 @@
                                     "identifiers": [{ "vendor_id": 5824, "product_id": 10203 }]
                                 }],
                                 "parameters": {
-                                    "basic.to_if_alone_timeout_milliseconds": 180,
-                                    "basic.to_if_held_down_threshold_milliseconds": 180
+                                    "basic.to_if_alone_timeout_milliseconds": 180
                                 },
+                                "to": [{ "key_code": "left_command", "lazy": true }],
                                 "to_if_alone": [{ "key_code": "a" }],
-                                "to_if_held_down": [{ "key_code": "left_command" }],
                                 "type": "basic"
                             },
                             {
@@ -35,11 +34,10 @@
                                     "identifiers": [{ "vendor_id": 5824, "product_id": 10203 }]
                                 }],
                                 "parameters": {
-                                    "basic.to_if_alone_timeout_milliseconds": 180,
-                                    "basic.to_if_held_down_threshold_milliseconds": 180
+                                    "basic.to_if_alone_timeout_milliseconds": 180
                                 },
+                                "to": [{ "key_code": "left_option", "lazy": true }],
                                 "to_if_alone": [{ "key_code": "s" }],
-                                "to_if_held_down": [{ "key_code": "left_option" }],
                                 "type": "basic"
                             },
                             {
@@ -52,11 +50,10 @@
                                     "identifiers": [{ "vendor_id": 5824, "product_id": 10203 }]
                                 }],
                                 "parameters": {
-                                    "basic.to_if_alone_timeout_milliseconds": 180,
-                                    "basic.to_if_held_down_threshold_milliseconds": 180
+                                    "basic.to_if_alone_timeout_milliseconds": 180
                                 },
+                                "to": [{ "key_code": "left_control", "lazy": true }],
                                 "to_if_alone": [{ "key_code": "d" }],
-                                "to_if_held_down": [{ "key_code": "left_control" }],
                                 "type": "basic"
                             },
                             {
@@ -69,11 +66,10 @@
                                     "identifiers": [{ "vendor_id": 5824, "product_id": 10203 }]
                                 }],
                                 "parameters": {
-                                    "basic.to_if_alone_timeout_milliseconds": 180,
-                                    "basic.to_if_held_down_threshold_milliseconds": 180
+                                    "basic.to_if_alone_timeout_milliseconds": 180
                                 },
+                                "to": [{ "key_code": "left_shift", "lazy": true }],
                                 "to_if_alone": [{ "key_code": "f" }],
-                                "to_if_held_down": [{ "key_code": "left_shift" }],
                                 "type": "basic"
                             },
                             {
@@ -86,11 +82,10 @@
                                     "identifiers": [{ "vendor_id": 5824, "product_id": 10203 }]
                                 }],
                                 "parameters": {
-                                    "basic.to_if_alone_timeout_milliseconds": 180,
-                                    "basic.to_if_held_down_threshold_milliseconds": 180
+                                    "basic.to_if_alone_timeout_milliseconds": 180
                                 },
+                                "to": [{ "key_code": "right_shift", "lazy": true }],
                                 "to_if_alone": [{ "key_code": "j" }],
-                                "to_if_held_down": [{ "key_code": "right_shift" }],
                                 "type": "basic"
                             },
                             {
@@ -103,11 +98,10 @@
                                     "identifiers": [{ "vendor_id": 5824, "product_id": 10203 }]
                                 }],
                                 "parameters": {
-                                    "basic.to_if_alone_timeout_milliseconds": 180,
-                                    "basic.to_if_held_down_threshold_milliseconds": 180
+                                    "basic.to_if_alone_timeout_milliseconds": 180
                                 },
+                                "to": [{ "key_code": "right_control", "lazy": true }],
                                 "to_if_alone": [{ "key_code": "k" }],
-                                "to_if_held_down": [{ "key_code": "right_control" }],
                                 "type": "basic"
                             },
                             {
@@ -120,11 +114,10 @@
                                     "identifiers": [{ "vendor_id": 5824, "product_id": 10203 }]
                                 }],
                                 "parameters": {
-                                    "basic.to_if_alone_timeout_milliseconds": 180,
-                                    "basic.to_if_held_down_threshold_milliseconds": 180
+                                    "basic.to_if_alone_timeout_milliseconds": 180
                                 },
+                                "to": [{ "key_code": "right_option", "lazy": true }],
                                 "to_if_alone": [{ "key_code": "l" }],
-                                "to_if_held_down": [{ "key_code": "right_option" }],
                                 "type": "basic"
                             },
                             {
@@ -137,11 +130,10 @@
                                     "identifiers": [{ "vendor_id": 5824, "product_id": 10203 }]
                                 }],
                                 "parameters": {
-                                    "basic.to_if_alone_timeout_milliseconds": 180,
-                                    "basic.to_if_held_down_threshold_milliseconds": 180
+                                    "basic.to_if_alone_timeout_milliseconds": 180
                                 },
+                                "to": [{ "key_code": "right_command", "lazy": true }],
                                 "to_if_alone": [{ "key_code": "semicolon" }],
-                                "to_if_held_down": [{ "key_code": "right_command" }],
                                 "type": "basic"
                             }
                         ]

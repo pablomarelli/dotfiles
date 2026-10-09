@@ -67,6 +67,11 @@ herdr_rename_tab_on_chpwd() {
 }
 add-zsh-hook chpwd herdr_rename_tab_on_chpwd
 
+# Track Herdr workspace focus (Agents tab, sidebar, keys) for the alt+. toggle.
+if [[ $HERDR_ENV == 1 && -x "$HOME/.config/herdr/bin/herdr-python" ]]; then
+  "$HOME/.config/herdr/bin/herdr-python" herdr-workspace-history --ensure >/dev/null 2>&1 &!
+fi
+
 zstyle ':completion:*' menu select
 
 typeset -U path PATH

@@ -6,6 +6,7 @@ return {
   { "vague2k/vague.nvim" },
   {
     "cormacrelf/dark-notify",
+    enabled = vim.fn.has("mac") == 1,
     lazy = false,
     config = function()
       local dark_notify = require("dark_notify")

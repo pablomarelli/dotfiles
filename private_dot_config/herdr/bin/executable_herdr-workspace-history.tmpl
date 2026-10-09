@@ -1,0 +1,140 @@
+# Invoked by herdr-python to avoid project-specific mise Python settings.
+"""Record every Herdr workspace focus change, whatever triggered it.
+
+Herdr has no focus hook, so the TUI's own navigation (Agents tab, sidebar
+clicks, built-in keys) never reaches herdr-last-workspace. This watcher
+subscribes to workspace focus events and keeps the shared history current.
+"""
+import argparse
+import fcntl
+import json
+import os
+import socket
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+from typing import Callable, Iterable
+
+
+CACHE = Path.home() / ".cache" / "herdr-last"
+PREVIOUS_PATH = CACHE / "workspace"
+MRU_PATH = CACHE / "workspace-mru.json"
+LOCK_PATH = CACHE / "workspace-history.lock"
+MRU_LIMIT = 200
+
+
+def socket_path() -> str:
+    return os.environ.get("HERDR_SOCKET_PATH") or str(Path.home() / ".config" / "herdr" / "herdr.sock")
+
+
+def focused_workspace() -> str | None:
+    result = subprocess.run(("herdr", "workspace", "list"), text=True, capture_output=True)
+    if result.returncode != 0:
+        return None
+    try:
+        items = json.loads(result.stdout)["result"]["workspaces"]
+    except (json.JSONDecodeError, KeyError, TypeError):
+        return None
+    return next((item["workspace_id"] for item in items if item.get("focused")), None)
+
+
+def write_atomic(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", dir=path.parent, delete=False) as handle:
+        handle.write(text)
+        temp = Path(handle.name)
+    try:
+        temp.replace(path)
+    finally:
+        temp.unlink(missing_ok=True)
+
+
+def read_mru() -> list[str]:
+    try:
+        data = json.loads(MRU_PATH.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+    return [item for item in data if isinstance(item, str)] if isinstance(data, list) else []
+
+
+def updated_mru(current: str, previous: str, ordered: list[str]) -> list[str]:
+    head = [current, previous]
+    return [*head, *(item for item in ordered if item not in head)][:MRU_LIMIT]
+
+
+def record(previous: str, current: str) -> None:
+    write_atomic(PREVIOUS_PATH, previous + "\n")
+    write_atomic(MRU_PATH, json.dumps(updated_mru(current, previous, read_mru())))
+
+
+def follow(lines: Iterable[str], current: str | None, on_change: Callable[[str, str], None]) -> None:
+    for line in lines:
+        message = json.loads(line)
+        if "error" in message:
+            raise SystemExit(f"herdr events.subscribe failed: {message['error']}")
+        if message.get("event") != "workspace_focused":
+            continue
+        target = message["data"]["workspace_id"]
+        # Herdr re-emits focus for the already focused workspace; only real switches count.
+        if target == current:
+            continue
+        if current is not None:
+            on_change(current, target)
+        current = target
+
+
+def acquire_lock():
+    LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
+    handle = LOCK_PATH.open("w")
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        handle.close()
+        return None
+    return handle
+
+
+def watch() -> int:
+    lock = acquire_lock()
+    if lock is None:
+        return 0
+    with socket.socket(socket.AF_UNIX) as client:
+        try:
+            client.connect(socket_path())
+        except OSError as exc:
+            raise SystemExit(f"cannot connect to herdr socket {socket_path()}: {exc}")
+        request = {"id": "workspace-history", "method": "events.subscribe",
+                   "params": {"subscriptions": [{"type": "workspace.focused"}]}}
+        client.sendall((json.dumps(request) + "\n").encode())
+        # Read the focus after subscribing so no switch falls between the two.
+        current = focused_workspace()
+        # Exits on EOF when the Herdr server stops; the next shell or alt+. restarts it.
+        follow(client.makefile(encoding="utf-8"), current, record)
+    return 0
+
+
+def ensure() -> int:
+    lock = acquire_lock()
+    if lock is None:
+        return 0
+    lock.close()
+    subprocess.Popen(
+        (sys.executable, os.path.abspath(__file__)),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Track Herdr workspace focus history.")
+    parser.add_argument("--ensure", action="store_true", help="start a detached watcher unless one is running")
+    args = parser.parse_args()
+    return ensure() if args.ensure else watch()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

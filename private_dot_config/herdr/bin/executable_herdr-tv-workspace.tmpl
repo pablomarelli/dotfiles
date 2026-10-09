@@ -1,17 +1,22 @@
 # Invoked by herdr-python to avoid project-specific mise Python settings.
 import argparse
+import fcntl
 import json
 import shlex
 import shutil
 import subprocess
 import tempfile
+from collections import Counter
 from pathlib import Path
 
 
 MRU_PATH = Path.home() / ".cache" / "herdr-last" / "workspace-mru.json"
 LAST_WORKSPACE_PATH = Path.home() / ".cache" / "herdr-last" / "workspace"
 PROJECT_ROOTS = (Path.home() / "whatif", Path.home() / "personal")
-ZOXIDE_ENTRY = "+ zoxide workspace..."
+OPEN_ENTRY = "+ Open folder..."
+PATH_ENTRY = "+ Enter path..."
+BROWSE_ENTRY = "+ Browse folders (including hidden)..."
+ROOTS_PATH = Path.home() / ".local" / "state" / "herdr-picker" / "roots.json"
 
 
 def command(name: str) -> str:
@@ -42,7 +47,10 @@ def workspaces() -> list[dict]:
 
 def load(*args: str) -> dict:
     try:
-        return json.loads(herdr(*args))["result"]
+        response = json.loads(herdr(*args))
+        if "error" in response:
+            raise SystemExit(f"herdr {' '.join(args)} failed: {response['error']}")
+        return response["result"]
     except (json.JSONDecodeError, KeyError, TypeError) as exc:
         raise SystemExit(f"cannot parse herdr {' '.join(args)} output: {exc}")
 
@@ -79,23 +87,17 @@ def line(workspace: dict) -> str:
     return workspace.get("label") or workspace["workspace_id"]
 
 
-def selection_type(selected: str | None, entries: dict) -> str:
-    if selected == ZOXIDE_ENTRY:
-        return "zoxide"
-    return entries.get(selected or "", {}).get("type", "none")
+def workspace_entries(items: list[dict]) -> dict[str, dict]:
+    counts = Counter(line(item) for item in items)
+    return {
+        (f"{line(item)}  [{item['workspace_id']}]" if counts[line(item)] > 1
+         or line(item).startswith("+") else line(item)): item
+        for item in items
+    }
 
 
 def should_focus(target: str | None, current: str) -> bool:
     return bool(target and target != current)
-
-
-def project_dirs(existing_labels: set[str]) -> list[dict]:
-    projects = [
-        {"label": path.name, "path": path}
-        for path in project_paths()
-        if path.name not in existing_labels
-    ]
-    return sorted(projects, key=lambda item: item["label"].lower())
 
 
 def project_paths() -> set[Path]:
@@ -106,7 +108,8 @@ def project_paths() -> set[Path]:
         for path in root.iterdir():
             if path.is_dir() and not path.name.startswith("."):
                 paths.add(path)
-                paths.update(child for child in path.iterdir() if child.is_dir() and not child.name.startswith("."))
+                # Discover nested repositories, not src/, node_modules/, etc.
+                paths.update(child for child in path.iterdir() if child.is_dir() and (child / ".git").exists())
     return paths
 
 
@@ -132,40 +135,111 @@ def git_label(cwd: Path) -> str:
     return Path(top).name
 
 
-def current_tab_id() -> str | None:
-    return load("pane", "current").get("pane", {}).get("tab_id")
+def read_roots(items: list[dict]) -> dict[str, str]:
+    try:
+        data = json.loads(ROOTS_PATH.read_text())
+    except FileNotFoundError:
+        return {}
+    except json.JSONDecodeError:
+        raise SystemExit(f"Invalid workspace folder mapping: {ROOTS_PATH}")
+    if not isinstance(data, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in data.items()):
+        raise SystemExit(f"Invalid workspace folder mapping: {ROOTS_PATH}")
+    valid = {item["workspace_id"] for item in items}
+    return {key: value for key, value in data.items() if key in valid}
 
 
-def rename_current_tab(cwd: Path) -> None:
-    tab_id = current_tab_id()
-    if tab_id:
-        herdr("tab", "rename", tab_id, git_label(cwd))
+def save_roots(roots: dict[str, str]) -> None:
+    with tempfile.NamedTemporaryFile("w", dir=ROOTS_PATH.parent, delete=False) as handle:
+        path = Path(handle.name)
+        json.dump(roots, handle)
+    try:
+        path.replace(ROOTS_PATH)
+    finally:
+        path.unlink(missing_ok=True)
 
 
-def create_workspace(cwd: Path) -> str | None:
-    label = git_label(cwd)
-    herdr("workspace", "create", "--cwd", str(cwd), "--label", label, "--focus")
-    rename_current_tab(cwd)
-    return next((w["workspace_id"] for w in workspaces() if line(w) == label), None)
+def matching_workspaces(cwd: Path, items: list[dict], roots: dict[str, str], panes: list[dict]) -> list[dict]:
+    # Once bound, a workspace's folder does not change when a pane runs cd.
+    known = [item for item in items if roots.get(item["workspace_id"]) == str(cwd)]
+    if known:
+        return known
+    legacy_ids = {
+        pane["workspace_id"] for pane in panes
+        if pane.get("cwd") and Path(pane["cwd"]).resolve() == cwd
+        and pane["workspace_id"] not in roots
+    }
+    return [item for item in items if item["workspace_id"] in legacy_ids]
 
 
-def zoxide_workspace() -> str | None:
-    if not shutil.which("zoxide"):
-        raise SystemExit("zoxide not found")
-    selected = pick_zoxide_dir()
-    if not selected:
-        return None
-    return create_workspace(Path(selected).expanduser().resolve())
+def open_folder(cwd: Path, label: str | None = None, ask_name: bool = False) -> str | None:
+    cwd = cwd.expanduser().resolve()
+    if not cwd.is_dir():
+        raise SystemExit(f"Not a directory: {cwd}")
+    ROOTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    # Serialize the lookup/create pair across simultaneous picker invocations.
+    with ROOTS_PATH.with_suffix(".lock").open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        items = sort_by_mru(workspaces())
+        roots = read_roots(items)
+        matches = matching_workspaces(cwd, items, roots, load("pane", "list")["panes"])
+        if matches:
+            if len(matches) == 1:
+                target = matches[0]["workspace_id"]
+            else:
+                entries = workspace_entries(matches)
+                selected = pick(list(entries), header=f"Already open: {cwd}")
+                if selected not in entries:
+                    return None
+                target = entries[selected]["workspace_id"]
+            if label:
+                load("workspace", "rename", target, label)
+        else:
+            default = git_label(cwd)
+            if ask_name and label is None:
+                label = input(f"Workspace name [{default}]: ").strip() or default
+            created = load("workspace", "create", "--cwd", str(cwd), "--label", label or default, "--no-focus")
+            target = created["workspace"]["workspace_id"]
+            load("tab", "rename", created["tab"]["tab_id"], default)
+        roots[target] = str(cwd)
+        save_roots(roots)
+        return target
 
 
 def zoxide_dirs() -> list[str]:
-    paths = set((run("zoxide", "query", "-l") or "").splitlines())
-    paths.update(str(path) for path in project_paths())
-    return sorted(paths, key=lambda path: Path(path).name.lower())
+    history = (run("zoxide", "query", "-l") or "").splitlines() if shutil.which("zoxide") else []
+    # Preserve zoxide's ranking, canonicalize aliases, and drop stale entries.
+    candidates = [*history, *sorted(str(path) for path in project_paths())]
+    return list(dict.fromkeys(str(Path(path).expanduser().resolve()) for path in candidates if Path(path).expanduser().is_dir()))
 
 
-def pick_zoxide_dir() -> str | None:
-    return pick(zoxide_dirs(), header="Create workspace from zoxide", prompt="dir> ")
+def browse_folder(cwd: Path) -> Path | None:
+    while True:
+        try:
+            children = sorted((path for path in cwd.iterdir() if path.is_dir()), key=lambda path: path.name.lower())
+        except PermissionError:
+            print(f"Cannot read {cwd}")
+            cwd = cwd.parent
+            continue
+        entries = {str(path): path for path in children}
+        selected = pick([". Open this folder", ".. Parent folder", *entries], header=str(cwd), prompt="folder> ")
+        if selected is None:
+            return None
+        if selected == ". Open this folder":
+            return cwd
+        if selected == ".. Parent folder":
+            cwd = cwd.parent
+        elif selected in entries:
+            cwd = entries[selected]
+
+
+def pick_folder() -> Path | None:
+    selected = pick([PATH_ENTRY, BROWSE_ENTRY, *zoxide_dirs()], header="Open folder: reuse or create", prompt="dir> ")
+    if selected == PATH_ENTRY:
+        value = input("Folder path (blank cancels): ").strip()
+        return Path(value).expanduser() if value else None
+    if selected == BROWSE_ENTRY:
+        return browse_folder(Path.home())
+    return Path(selected) if selected else None
 
 
 def pick(lines: list[str], header: str = "Herdr workspaces", prompt: str = "workspace> ") -> str | None:
@@ -209,14 +283,8 @@ def self_check() -> None:
     workspace = {"workspace_id": "workspace-0", "label": "project"}
     check(line(workspace) == "project", "workspace labels stay clean")
     check(line({"workspace_id": "workspace-0"}) == "workspace-0", "workspace IDs remain a fallback")
-    check(ZOXIDE_ENTRY not in {line(workspace)}, "zoxide remains a separate second-stage action")
-    entries = {
-        "existing": {"type": "workspace", "workspace": {"workspace_id": "workspace-1"}},
-        "project": {"type": "project", "project": {"label": "project"}},
-    }
-    check(selection_type("existing", entries) == "workspace" and should_focus("workspace-1", "workspace-0"), "existing workspaces focus when selected")
-    check(selection_type("project", entries) == "project", "projects create workspaces when selected")
-    check(selection_type(ZOXIDE_ENTRY, entries) == "zoxide", "zoxide selection enters its second-stage flow")
+    entries = workspace_entries([workspace, {"workspace_id": "workspace-1", "label": "project"}])
+    check(len(entries) == 2, "duplicate labels remain individually selectable")
     check(updated_mru("workspace-1", ["workspace-2", "workspace-1", "stale"], {"workspace-1", "workspace-2"}) == ["workspace-1", "workspace-2"], "MRU updates keep the selected valid workspace first")
 
 
@@ -225,7 +293,11 @@ def main() -> int:
     parser.add_argument("--status", action="store_true", help="print available workspace rows and exit")
     parser.add_argument("--dry-run", action="store_true", help="verify dependencies and print the current workspace")
     parser.add_argument("--self-check", action="store_true", help="validate picker labels")
+    parser.add_argument("--open", type=Path, help="open a folder, reusing its workspace")
+    parser.add_argument("--label", help="name the opened workspace (also renames an existing match)")
     args = parser.parse_args()
+    if args.label is not None and (args.open is None or not args.label.strip()):
+        parser.error("--label requires --open and a nonempty name")
 
     if args.self_check:
         self_check()
@@ -233,60 +305,43 @@ def main() -> int:
 
     command("herdr")
     items = workspaces()
-    existing_labels = {line(workspace) for workspace in items}
     valid_ids = {workspace["workspace_id"] for workspace in items}
     current = next((workspace["workspace_id"] for workspace in items if workspace.get("focused")), "-")
     items = sort_by_mru(items)
-    if not args.status and current != "-":
+    if not args.status and not args.dry_run and current != "-":
         touch_mru(current, valid_ids)
         items = sort_by_mru(items)
-    projects = project_dirs(existing_labels)
-    entries = {
-        **{line(workspace): {"type": "workspace", "workspace": workspace} for workspace in items},
-        **{project["label"]: {"type": "project", "project": project} for project in projects},
-    }
-    lines = [*entries, ZOXIDE_ENTRY]
+    entries = workspace_entries(items)
+    lines = [*entries, OPEN_ENTRY]
 
     if args.status:
         print("\n".join(lines))
         return 0
 
     if args.dry_run:
-        print(f"current={current} workspaces={len(items)} projects={len(projects)} television={shutil.which('tv') or shutil.which('television') or '-'}")
+        print(f"current={current} workspaces={len(items)} television={shutil.which('tv') or shutil.which('television') or '-'}")
         return 0
 
-    selected = pick(lines)
-    selected_type = selection_type(selected, entries)
-    if selected_type == "zoxide":
+    if args.open is not None:
+        target = open_folder(args.open, args.label)
+    else:
+        selected = pick(lines)
+        if selected == OPEN_ENTRY:
+            cwd = pick_folder()
+            target = open_folder(cwd, ask_name=True) if cwd else None
+        else:
+            target = entries.get(selected or "", {}).get("workspace_id")
+    if target and should_focus(target, current):
+        load("workspace", "focus", target)
         if current != "-":
             remember_previous_workspace(current)
-        target = zoxide_workspace()
-        if target:
-            touch_mru(target, {workspace["workspace_id"] for workspace in workspaces()})
-        return 0
-
-    entry = entries.get(selected or "")
-    target = entry["workspace"]["workspace_id"] if entry and entry["type"] == "workspace" else None
-    if selected_type == "project":
-        project = entry["project"]
-        herdr("workspace", "create", "--cwd", str(project["path"]), "--label", git_label(project["path"]), "--focus")
-        rename_current_tab(project["path"])
-        items = workspaces()
-        valid_ids = {workspace["workspace_id"] for workspace in items}
-        target = next((workspace["workspace_id"] for workspace in items if line(workspace) == git_label(project["path"])), None)
-    if should_focus(target, current):
-        if current != "-":
-            remember_previous_workspace(current)
-        herdr("workspace", "focus", target)
-        try:
-            cwd = Path(load("pane", "current")["pane"].get("foreground_cwd") or Path.home())
-            rename_current_tab(cwd)
-        except (KeyError, TypeError):
-            pass
     if target:
-        touch_mru(target, valid_ids)
+        touch_mru(target, {workspace["workspace_id"] for workspace in workspaces()})
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except (EOFError, KeyboardInterrupt):
+        raise SystemExit(0)

@@ -1,6 +1,7 @@
 # Global Agent Instructions
 
 - Never use the em dash "—". Use plain dash "-" instead.
+- Before writing any prose response longer than a sentence, load the `unslop` skill and apply it to the final wording. This applies to every model and every agent.
 - When writing commit messages, NEVER auto-add your agent name as co-author.
 - Never manually modify `CHANGELOG.md` files or any files that are marked as auto-generated.
 - When making technical decisions, do not give much weight to development cost. Instead, prefer quality, simplicity, robustness, scalability, and long term maintainability.

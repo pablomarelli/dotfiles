@@ -124,7 +124,7 @@ run_onchange_install-zsh-plugins.sh
 !.config/opencode/zen.env
 {{ end }}
 !.config/opencode/plugins/
-!.config/opencode/plugins/ntfy.ts
+!.config/opencode/plugins/ntfy.js
 
 # Secret-backed templates are opt-in. Keep this list in sync with secret-refs.txt
 # so new 1Password-backed targets cannot render by default.

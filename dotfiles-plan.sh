@@ -23,15 +23,16 @@ plan_mise_tools() {
     'gh = "latest"' \
     'ripgrep = "latest"' \
     'delta = "latest"' \
+    '"aqua:dlvhdr/diffnav" = "latest"' \
     'tree-sitter = "latest"' \
     'chezmoi = "2.70.0"' \
     '"github:neovim/neovim" = "latest"' \
     'opencode = "latest"' \
-    '"npm:@opencode-ai/cli" = { version = "latest", allow_builds = ["@opencode-ai/cli"] }' \
+    '"npm:@opencode/cli" = { version = "latest", allow_builds = ["@opencode/cli"] }' \
     '"npm:@earendil-works/pi-coding-agent" = "latest"' \
     '"npm:obsidian-headless" = "latest"' \
     'go = "latest"' \
-    'python = "3.14.*"' \
+    'python = "3.14"' \
     'worktrunk = "latest"'
   case "$profile" in
     minimal|full)
@@ -61,13 +62,15 @@ plan_mise_tools() {
       'tlrc = "latest"' \
       'cheat = "latest"' \
       'pipx = "latest"' \
-      'docker-cli = "latest"' \
       'coreutils = "latest"' \
       'usage = "latest"' \
       'k3d = "latest"' \
       'terragrunt = "latest"' \
       'opentofu = "latest"' \
-      'kubectl = "latest"'
+      'kubectl = "latest"' \
+      'aws-cli = { version = "latest", symlink_bins = "true" }' \
+      '"aqua:grafana/grafanactl" = "latest"' \
+      'argocd = "latest"'
   fi
 }
 

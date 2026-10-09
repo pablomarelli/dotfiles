@@ -980,8 +980,9 @@ test_profile_mise_rendering() {
   assert_contains "$dir/mise-settings.toml" 'package_manager = "npm"'
 
   expected_remote="$(cat <<'EOF' | sort
+"aqua:dlvhdr/diffnav" = "latest"
 "github:neovim/neovim" = "latest"
-"npm:@opencode-ai/cli" = { version = "latest", allow_builds = ["@opencode-ai/cli"] }
+"npm:@opencode/cli" = { version = "latest", allow_builds = ["@opencode/cli"] }
 "npm:@earendil-works/pi-coding-agent" = "latest"
 chezmoi = "2.70.0"
 delta = "latest"
@@ -993,7 +994,7 @@ jq = "latest"
 node = "24"
 opencode = "latest"
 "npm:obsidian-headless" = "latest"
-python = "3.14.*"
+python = "3.14"
 ripgrep = "latest"
 tmux = "latest"
 tree-sitter = "latest"
@@ -1002,6 +1003,7 @@ EOF
 )"
   expected_minimal="$(cat <<'EOF' | sort
 "aqua:alexpasmantier/television" = "latest"
+"aqua:dlvhdr/diffnav" = "latest"
 "aqua:joshmedeski/sesh" = "latest"
 "cargo:navi" = "latest"
 "github:neovim/neovim" = "latest"
@@ -1009,7 +1011,7 @@ rust = "latest"
 starship = "latest"
 "github:ogulcancelik/herdr" = "latest"
 "npm:@earendil-works/pi-coding-agent" = "latest"
-"npm:@opencode-ai/cli" = { version = "latest", allow_builds = ["@opencode-ai/cli"] }
+"npm:@opencode/cli" = { version = "latest", allow_builds = ["@opencode/cli"] }
 "npm:obsidian-headless" = "latest"
 ast-grep = "latest"
 bat = "latest"
@@ -1024,7 +1026,7 @@ jq = "latest"
 lazygit = "latest"
 node = "24"
 opencode = "latest"
-python = "3.14.*"
+python = "3.14"
 ripgrep = "latest"
 tmux = "latest"
 tree-sitter = "latest"
@@ -1034,22 +1036,25 @@ EOF
 )"
   expected_full="$(cat <<'EOF' | sort
 "aqua:alexpasmantier/television" = "latest"
+"aqua:dlvhdr/diffnav" = "latest"
+"aqua:grafana/grafanactl" = "latest"
 "aqua:joshmedeski/sesh" = "latest"
 "cargo:navi" = "latest"
 "github:neovim/neovim" = "latest"
 "github:ogulcancelik/herdr" = "latest"
 starship = "latest"
 "npm:@earendil-works/pi-coding-agent" = "latest"
-"npm:@opencode-ai/cli" = { version = "latest", allow_builds = ["@opencode-ai/cli"] }
+"npm:@opencode/cli" = { version = "latest", allow_builds = ["@opencode/cli"] }
 "npm:obsidian-headless" = "latest"
 "npm:sql-formatter" = "latest"
 ast-grep = "latest"
 bat = "latest"
 cheat = "latest"
+argocd = "latest"
+aws-cli = { version = "latest", symlink_bins = "true" }
 chezmoi = "2.70.0"
 coreutils = "latest"
 delta = "latest"
-docker-cli = "latest"
 duf = "latest"
 eza = "latest"
 fd = "latest"
@@ -1068,7 +1073,7 @@ node = "24"
 opencode = "latest"
 opentofu = "latest"
 pipx = "latest"
-python = "3.14.*"
+python = "3.14"
 ripgrep = "latest"
 rust = "latest"
 terragrunt = "latest"
@@ -1317,6 +1322,9 @@ test_portable_profile_configs() {
   assert_not_contains "$dir/opencode-remote.json" '"atlassian"'
   assert_not_contains "$dir/opencode-remote.json" '"Devops-MCP-hub"'
   assert_not_contains "$dir/opencode-remote.json" '"sentry"'
+  assert_not_contains "$dir/opencode-remote.json" '"playwright"'
+  assert_not_contains "$dir/opencode-remote.json" '"chrome-devtools"'
+  assert_not_contains "$dir/opencode-remote.json" '"databricks-anthropic"'
 
   render_with_config "$dir" "$ROOT_DIR/dot_pi/private_agent/settings.json.tmpl" "$dir/pi-remote.json"
   jq -e '.defaultProvider == "opencode" and .defaultModel == "mimo-v2.5-free"' "$dir/pi-remote.json" >/dev/null
@@ -1331,6 +1339,26 @@ test_portable_profile_configs() {
 
   render_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-full.json"
   jq -e '.model == "openai/gpt-5.6-sol" and (.mcp.servers.atlassian.codemode == false) and .mcp.servers["Devops-MCP-hub"] and .mcp.servers.sentry and (.websearch.provider == "random")' "$dir/opencode-full.json" >/dev/null
+  jq -e '.mcp.servers.playwright.command[-1] == $output and .mcp.servers["chrome-devtools"]' --arg output "$dir/home/.tmp/opencode/playwright-mcp" "$dir/opencode-full.json" >/dev/null
+  assert_not_contains "$dir/opencode-full.json" '"databricks-anthropic"'
+
+  mkdir -p "$dir/home/.config/opencode/secrets"
+  printf 'fixture-token-never-embedded\n' >"$dir/home/.config/opencode/secrets/databricks-token"
+  render_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-gateway.json"
+  jq -e '.model == "databricks-anthropic/system.ai.claude-fable-5-1" and .providers["databricks-anthropic"].settings.apiKey == "{file:~/.config/opencode/secrets/databricks-token}" and .providers["databricks-openai"].models["system.ai.gpt-6-1-sol"]' "$dir/opencode-gateway.json" >/dev/null
+  assert_not_contains "$dir/opencode-gateway.json" "fixture-token-never-embedded"
+
+  make_real_config "$dir" 0 linux minimal
+  render_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-minimal.json"
+  jq -e '.model == "openai/gpt-5.6-sol" and .mcp.servers.playwright and .mcp.servers["chrome-devtools"]' "$dir/opencode-minimal.json" >/dev/null
+  assert_not_contains "$dir/opencode-minimal.json" '"databricks-anthropic"'
+
+  make_real_config "$dir" 0 linux remote
+  render_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-remote-token.json"
+  jq -e '.model == "opencode/mimo-v2.5-free"' "$dir/opencode-remote-token.json" >/dev/null
+  assert_not_contains "$dir/opencode-remote-token.json" '"databricks-anthropic"'
+
+  make_real_config "$dir" 0 darwin full
 
   render_with_config "$dir" "$ROOT_DIR/dot_pi/private_agent/settings.json.tmpl" "$dir/pi-full.json"
   jq -e '.defaultProvider == "openai-codex" and .defaultModel == "gpt-5.6-sol"' "$dir/pi-full.json" >/dev/null

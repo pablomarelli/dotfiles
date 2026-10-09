@@ -47,9 +47,13 @@
 {{- $profile := (index . "install_profile") | default "full" }}
 [settings]
 idiomatic_version_file_enable_tools = ["python"]
+minimum_release_age_excludes = ["npm:@opencode/cli", "github:ogulcancelik/herdr"]
 
 [settings.npm]
 package_manager = "npm"
+
+[settings.github]
+credential_command = 'gh auth token --hostname "$MISE_CREDENTIAL_HOST"'
 
 [tools]
 node = "24"
@@ -65,11 +69,11 @@ tree-sitter = "latest"
 chezmoi = "2.70.0"
 "github:neovim/neovim" = "latest"
 opencode = "latest"
-"npm:@opencode-ai/cli" = { version = "latest", allow_builds = ["@opencode-ai/cli"] }
+"npm:@opencode/cli" = { version = "latest", allow_builds = ["@opencode/cli"] }
 "npm:@earendil-works/pi-coding-agent" = "latest"
 "npm:obsidian-headless" = "latest"
 go = "latest"
-python = "3.14.*"
+python = "3.14"
 worktrunk = "latest"
 {{ if or (eq $profile "minimal") (eq $profile "full") }}
 zoxide = "latest"
@@ -95,11 +99,13 @@ xh = "latest"
 tlrc = "latest"
 cheat = "latest"
 pipx = "latest"
-docker-cli = "latest"
 coreutils = "latest"
 usage = "latest"
 k3d = "latest"
 terragrunt = "latest"
 opentofu = "latest"
 kubectl = "latest"
+aws-cli = { version = "latest", symlink_bins = "true" }
+"aqua:grafana/grafanactl" = "latest"
+argocd = "latest"
 {{ end }}
