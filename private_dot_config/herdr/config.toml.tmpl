@@ -81,10 +81,17 @@ description = "Toggle to the last tab"
 
 [ui]
 show_agent_labels_on_pane_borders = false
+tab_bar_right = [
+  { type = "command", command = "~/.config/herdr/status.sh", interval_seconds = 5, timeout_seconds = 3 },
+]
 
 [theme]
 name = "gruvbox"
 auto_switch = false
+
+[theme.custom]
+# Match status text to Gruvbox's active-tab background.
+overlay1 = "#d79921"
 
 [experimental]
 kitty_graphics = true

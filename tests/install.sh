@@ -1358,6 +1358,32 @@ test_portable_profile_configs() {
   jq -e '.model == "opencode/mimo-v2.5-free"' "$dir/opencode-remote-token.json" >/dev/null
   assert_not_contains "$dir/opencode-remote-token.json" '"databricks-anthropic"'
 
+  local config
+  for config in "$dir"/opencode-*.json; do
+    jq -e '
+      (has("permission") | not) and
+      (.permissions | length == 22) and
+      (all(.permissions[]; (keys == ["action", "effect", "resource"]))) and
+      (.permissions[0] == {action: "external_directory", resource: "*", effect: "allow"}) and
+      (.permissions[1] == {action: "shell", resource: "*", effect: "allow"}) and
+      (.permissions[8] == {action: "read", resource: "*", effect: "allow"}) and
+      ([.permissions[] | select(.effect == "ask") | {action, resource}] == [
+        {action: "shell", resource: "git commit *"},
+        {action: "shell", resource: "git push"},
+        {action: "shell", resource: "git push *"},
+        {action: "shell", resource: "git push --force *"},
+        {action: "shell", resource: "git rebase *"},
+        {action: "shell", resource: "git reset --hard *"}
+      ]) and
+      ([.permissions[] | select(.effect == "deny") | .resource] == [
+        "**/*.key", "**/*.pem", "**/.aws/credentials", "**/.config/gh/hosts.yml",
+        "**/.credentials/**", "**/.env", "**/.env.*", "**/.ssh/**",
+        "**/Library/Keychains/**", "**/credentials.json", "**/secrets/**", "*.env", "*.env.*"
+      ]) and
+      (all(.permissions[] | select(.effect == "deny"); .action == "read"))
+    ' "$config" >/dev/null || fail "V2 permission rules changed in $config"
+  done
+
   make_real_config "$dir" 0 darwin full
 
   render_with_config "$dir" "$ROOT_DIR/dot_pi/private_agent/settings.json.tmpl" "$dir/pi-full.json"
