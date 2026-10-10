@@ -1338,19 +1338,19 @@ test_portable_profile_configs() {
   assert_contains "$dir/ghostty-config" "$dir/home/.config/ghostty/shaders/cursor_smear.glsl"
 
   render_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-full.json"
-  jq -e '.model == "openai/gpt-5.6-sol" and (.mcp.servers.atlassian.codemode == false) and .mcp.servers["Devops-MCP-hub"] and .mcp.servers.sentry and (.websearch.provider == "random")' "$dir/opencode-full.json" >/dev/null
+  jq -e '.model == "openai/gpt-6.1-sol" and (.mcp.servers.atlassian.codemode == false) and .mcp.servers["Devops-MCP-hub"] and .mcp.servers.sentry and (.websearch.provider == "random")' "$dir/opencode-full.json" >/dev/null
   jq -e '.mcp.servers.playwright.command[-1] == $output and .mcp.servers["chrome-devtools"]' --arg output "$dir/home/.tmp/opencode/playwright-mcp" "$dir/opencode-full.json" >/dev/null
   assert_not_contains "$dir/opencode-full.json" '"databricks-anthropic"'
 
   mkdir -p "$dir/home/.config/opencode/secrets"
   printf 'fixture-token-never-embedded\n' >"$dir/home/.config/opencode/secrets/databricks-token"
   render_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-gateway.json"
-  jq -e '.model == "databricks-anthropic/system.ai.claude-fable-5-1" and .providers["databricks-anthropic"].settings.apiKey == "{file:~/.config/opencode/secrets/databricks-token}" and .providers["databricks-openai"].models["system.ai.gpt-6-1-sol"]' "$dir/opencode-gateway.json" >/dev/null
+  jq -e '.model == "openai/gpt-6.1-sol" and .providers["databricks-anthropic"].settings.apiKey == "{file:~/.config/opencode/secrets/databricks-token}" and .providers["databricks-openai"].models["system.ai.gpt-6-1-sol"]' "$dir/opencode-gateway.json" >/dev/null
   assert_not_contains "$dir/opencode-gateway.json" "fixture-token-never-embedded"
 
   make_real_config "$dir" 0 linux minimal
   render_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-minimal.json"
-  jq -e '.model == "openai/gpt-5.6-sol" and .mcp.servers.playwright and .mcp.servers["chrome-devtools"]' "$dir/opencode-minimal.json" >/dev/null
+  jq -e '.model == "openai/gpt-6.1-sol" and .mcp.servers.playwright and .mcp.servers["chrome-devtools"]' "$dir/opencode-minimal.json" >/dev/null
   assert_not_contains "$dir/opencode-minimal.json" '"databricks-anthropic"'
 
   make_real_config "$dir" 0 linux remote
@@ -1360,6 +1360,7 @@ test_portable_profile_configs() {
 
   local config
   for config in "$dir"/opencode-*.json; do
+    jq -e '.mcp.servers.context7 == {type: "remote", url: "https://mcp.context7.com/mcp"}' "$config" >/dev/null || fail "Context7 missing in $config"
     jq -e '
       (has("permission") | not) and
       (.permissions | length == 22) and

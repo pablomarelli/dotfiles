@@ -1,0 +1,32 @@
+#!/bin/sh
+# Linux system health. Sample aggregate CPU usage over one second.
+set -eu
+
+sample=$(awk '/^cpu / {
+  for (i = 2; i <= 9; i++) total += $i
+  print total, $5 + $6
+  exit
+}' /proc/stat)
+sleep 1
+cpu=$(awk -v previous="$sample" '/^cpu / {
+  split(previous, before, " ")
+  for (i = 2; i <= 9; i++) total += $i
+  elapsed = total - before[1]
+  idle = $5 + $6 - before[2]
+  usage = elapsed > 0 ? 100 * (elapsed - idle) / elapsed : 0
+  if (usage < 0) usage = 0
+  if (usage > 100) usage = 100
+  printf "%.0f%%", usage
+  exit
+}' /proc/stat)
+memory=$(awk '
+  /^MemTotal:/ { total = $2 }
+  /^MemAvailable:/ { available = $2; found = 1 }
+  END {
+    if (total <= 0 || !found) exit 1
+    printf "%.0f%%", 100 * (total - available) / total
+  }
+' /proc/meminfo)
+disk=$(LC_ALL=C df -P "${HOME:?}" | awk 'NR == 2 {print $5}')
+
+printf 'CPU %s RAM %s Disk %s\n' "$cpu" "$memory" "$disk"

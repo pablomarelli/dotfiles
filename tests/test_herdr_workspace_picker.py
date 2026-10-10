@@ -85,6 +85,8 @@ class WorkspacePickerTests(unittest.TestCase):
     def test_existing_workspace_is_adopted_and_can_be_renamed(self):
         self.items.append({"workspace_id": "old", "label": ".config"})
         self.panes.append({"workspace_id": "old", "cwd": str(self.folder)})
+        self.picker.ROOTS_PATH.parent.mkdir(parents=True)
+        self.picker.ROOTS_PATH.write_text(json.dumps({"old": str(self.folder)}))
         self.invoke("--open", str(self.folder), "--label", "dotfiles")
         self.assertEqual(self.created, 0)
         self.assertEqual(self.items[-1]["label"], "dotfiles")
@@ -101,10 +103,38 @@ class WorkspacePickerTests(unittest.TestCase):
     def test_duplicate_existing_paths_require_selection(self):
         self.items.extend({"workspace_id": key, "label": "same"} for key in ("w2", "w3"))
         self.panes.extend({"workspace_id": key, "cwd": str(self.folder)} for key in ("w2", "w3"))
+        self.picker.ROOTS_PATH.parent.mkdir(parents=True)
+        self.picker.ROOTS_PATH.write_text(json.dumps({key: str(self.folder) for key in ("w2", "w3")}))
         self.selections = ["same  [w3]"]
         self.invoke("--open", str(self.folder))
         self.assertEqual(self.created, 0)
         self.assertTrue(self.items[-1]["focused"])
+
+    def test_matching_pane_directories_do_not_adopt_unassociated_workspaces(self):
+        self.items.append({"workspace_id": "personal", "label": "personal"})
+        self.panes.extend({"workspace_id": key, "cwd": str(self.folder)} for key in ("w1", "personal"))
+        self.invoke("--open", str(self.folder))
+        self.assertEqual(self.created, 1)
+        self.assertEqual(self.items[-1]["label"], self.folder.name)
+        self.invoke("--open", str(self.folder))
+        self.assertEqual(self.created, 1)
+
+    def test_non_git_folder_is_selectable_on_first_screen(self):
+        self.picker.PROJECT_ROOTS = (self.root,)
+        folder = self.root / "workout-tracker"
+        folder.mkdir()
+        with patch.object(Path, "home", return_value=self.root):
+            self.selections = ["~/workout-tracker"]
+            self.invoke()
+        self.assertEqual(self.created, 1)
+        self.assertEqual(self.items[-1]["label"], "workout-tracker")
+
+    def test_discovery_is_shallow_and_skips_missing_roots(self):
+        folder = self.root / "workout-tracker"
+        folder.mkdir()
+        (folder / "node_modules").mkdir()
+        self.picker.PROJECT_ROOTS = (self.root, self.root / "future-work")
+        self.assertEqual(self.picker.project_paths(), {folder})
 
     def test_cancel_folder_selection_preserves_last_workspace(self):
         self.picker.LAST_WORKSPACE_PATH.parent.mkdir(parents=True)

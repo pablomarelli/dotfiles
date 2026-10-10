@@ -12,7 +12,7 @@ from pathlib import Path
 
 MRU_PATH = Path.home() / ".cache" / "herdr-last" / "workspace-mru.json"
 LAST_WORKSPACE_PATH = Path.home() / ".cache" / "herdr-last" / "workspace"
-PROJECT_ROOTS = (Path.home() / "whatif", Path.home() / "personal")
+PROJECT_ROOTS = tuple(Path.home() / root for root in ("", "whatif", "personal", "homelab", "work"))
 OPEN_ENTRY = "+ Open folder..."
 PATH_ENTRY = "+ Enter path..."
 BROWSE_ENTRY = "+ Browse folders (including hidden)..."
@@ -108,9 +108,17 @@ def project_paths() -> set[Path]:
         for path in root.iterdir():
             if path.is_dir() and not path.name.startswith("."):
                 paths.add(path)
-                # Discover nested repositories, not src/, node_modules/, etc.
-                paths.update(child for child in path.iterdir() if child.is_dir() and (child / ".git").exists())
     return paths
+
+
+def folder_entries() -> dict[str, Path]:
+    home = Path.home()
+    entries = {}
+    for value in zoxide_dirs():
+        path = Path(value)
+        label = f"~/{path.relative_to(home)}" if path.is_relative_to(home) else str(path)
+        entries[label] = path
+    return entries
 
 
 def git_label(cwd: Path) -> str:
@@ -158,17 +166,9 @@ def save_roots(roots: dict[str, str]) -> None:
         path.unlink(missing_ok=True)
 
 
-def matching_workspaces(cwd: Path, items: list[dict], roots: dict[str, str], panes: list[dict]) -> list[dict]:
+def matching_workspaces(cwd: Path, items: list[dict], roots: dict[str, str]) -> list[dict]:
     # Once bound, a workspace's folder does not change when a pane runs cd.
-    known = [item for item in items if roots.get(item["workspace_id"]) == str(cwd)]
-    if known:
-        return known
-    legacy_ids = {
-        pane["workspace_id"] for pane in panes
-        if pane.get("cwd") and Path(pane["cwd"]).resolve() == cwd
-        and pane["workspace_id"] not in roots
-    }
-    return [item for item in items if item["workspace_id"] in legacy_ids]
+    return [item for item in items if roots.get(item["workspace_id"]) == str(cwd)]
 
 
 def open_folder(cwd: Path, label: str | None = None, ask_name: bool = False) -> str | None:
@@ -181,7 +181,7 @@ def open_folder(cwd: Path, label: str | None = None, ask_name: bool = False) -> 
         fcntl.flock(lock, fcntl.LOCK_EX)
         items = sort_by_mru(workspaces())
         roots = read_roots(items)
-        matches = matching_workspaces(cwd, items, roots, load("pane", "list")["panes"])
+        matches = matching_workspaces(cwd, items, roots)
         if matches:
             if len(matches) == 1:
                 target = matches[0]["workspace_id"]
@@ -312,7 +312,10 @@ def main() -> int:
         touch_mru(current, valid_ids)
         items = sort_by_mru(items)
     entries = workspace_entries(items)
-    lines = [*entries, OPEN_ENTRY]
+    folders = folder_entries()
+    # Keep workspace and folder choices distinct even with path-like workspace names.
+    folders = {(f"{label}  [folder]" if label in entries else label): path for label, path in folders.items()}
+    lines = [*entries, *folders, OPEN_ENTRY]
 
     if args.status:
         print("\n".join(lines))
@@ -329,6 +332,8 @@ def main() -> int:
         if selected == OPEN_ENTRY:
             cwd = pick_folder()
             target = open_folder(cwd, ask_name=True) if cwd else None
+        elif selected in folders:
+            target = open_folder(folders[selected])
         else:
             target = entries.get(selected or "", {}).get("workspace_id")
     if target and should_focus(target, current):

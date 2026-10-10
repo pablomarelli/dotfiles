@@ -3,7 +3,7 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "instructions": ["AGENTS.md"],
-  "model": "{{ if eq $profile "remote" }}opencode/mimo-v2.5-free{{ else if $gatewayEnabled }}databricks-anthropic/system.ai.claude-fable-5-1{{ else }}openai/gpt-5.6-sol{{ end }}",
+  "model": "{{ if eq $profile "remote" }}opencode/mimo-v2.5-free{{ else }}openai/gpt-6.1-sol{{ end }}",
   "small_model": "{{ if eq $profile "remote" }}opencode/ling-3.0-flash-fin-free{{ else }}openai/gpt-5.6-luna{{ end }}",
 
   "agents": {
@@ -12,8 +12,8 @@
     "minimal": { "hidden": true }
   },
 
-{{ if $gatewayEnabled }}
   "providers": {
+{{ if $gatewayEnabled }}
     "databricks-anthropic": {
       "name": "Databricks Anthropic Gateway",
       "package": "@opencode/ai/providers/anthropic",
@@ -204,6 +204,7 @@
         }
       }
     },
+{{ end }}
     "openai": {
       "models": {
         "gpt-6.1-sol": {
@@ -215,7 +216,6 @@
     }
   },
 
-{{ end }}
 {{ if eq $profile "full" }}
   "skills": {
     "paths": ["~/.config/opencode/skills-work"]
