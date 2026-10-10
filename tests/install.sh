@@ -473,11 +473,9 @@ assert_ignored_for_profile() {
       assert_contains "$output" ".aws/credentials"
     fi
     assert_not_contains "$output" ".gitconfig.work"
-    assert_not_contains "$output" ".config/opencode/commands/reviewpr.md"
   else
     assert_contains "$output" ".aws"
     assert_contains "$output" ".gitconfig.work"
-    assert_contains "$output" ".config/opencode/commands/reviewpr.md"
     assert_contains "$output" ".config/zsh/jangl.zsh"
     if [[ "$profile" == "remote" ]]; then
       assert_contains "$output" ".config/navi"
@@ -978,6 +976,7 @@ test_profile_mise_rendering() {
   make_real_config "$dir" 0 linux remote
   render_with_config "$dir" "$ROOT_DIR/private_dot_config/mise/config.toml.tmpl" "$dir/mise-settings.toml"
   assert_contains "$dir/mise-settings.toml" 'package_manager = "npm"'
+  assert_contains "$dir/mise-settings.toml" 'minimum_release_age_excludes = ["npm:@opencode/cli", "github:ogulcancelik/herdr"]'
 
   expected_remote="$(cat <<'EOF' | sort
 "aqua:dlvhdr/diffnav" = "latest"
@@ -992,7 +991,6 @@ gh = "latest"
 go = "latest"
 jq = "latest"
 node = "24"
-opencode = "latest"
 "npm:obsidian-headless" = "latest"
 python = "3.14"
 ripgrep = "latest"
@@ -1025,7 +1023,6 @@ go = "latest"
 jq = "latest"
 lazygit = "latest"
 node = "24"
-opencode = "latest"
 python = "3.14"
 ripgrep = "latest"
 tmux = "latest"
@@ -1070,7 +1067,6 @@ kubectx = "latest"
 lazydocker = "latest"
 lazygit = "latest"
 node = "24"
-opencode = "latest"
 opentofu = "latest"
 pipx = "latest"
 python = "3.14"

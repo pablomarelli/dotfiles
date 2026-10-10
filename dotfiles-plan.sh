@@ -27,7 +27,6 @@ plan_mise_tools() {
     'tree-sitter = "latest"' \
     'chezmoi = "2.70.0"' \
     '"github:neovim/neovim" = "latest"' \
-    'opencode = "latest"' \
     '"npm:@opencode/cli" = { version = "latest", allow_builds = ["@opencode/cli"] }' \
     '"npm:@earendil-works/pi-coding-agent" = "latest"' \
     '"npm:obsidian-headless" = "latest"' \

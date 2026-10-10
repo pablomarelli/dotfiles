@@ -41,14 +41,10 @@ fi
 export FZF_DEFAULT_OPTS="
 --style=minimal
 "
-# ZOxide (cached for faster startup)
+# Initialize zoxide directly so stale shell integration cannot persist.
 export _ZO_ECHO=1
-_zoxide_cache="$HOME/.cache/zsh/zoxide_init.zsh"
 if command -v zoxide >/dev/null 2>&1; then
-  if [[ ! -f "$_zoxide_cache" ]] || [[ "$(command -v zoxide)" -nt "$_zoxide_cache" ]]; then
-    zoxide init zsh > "$_zoxide_cache" 2>/dev/null
-  fi
-  [[ -f "$_zoxide_cache" ]] && source "$_zoxide_cache"
+  eval "$(zoxide init zsh)"
 fi
 
 # Navi widget (cached for faster startup)

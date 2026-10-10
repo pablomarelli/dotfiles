@@ -74,7 +74,6 @@ tests
 .config/zed/**
 .config/navi/jangl.cheat
 .config/zsh/jangl.zsh
-.config/opencode/commands/reviewpr.md
 .gitconfig.work
 {{ end }}
 
@@ -107,10 +106,6 @@ run_onchange_install-zsh-plugins.sh
 !.config/opencode/AGENTS.md
 !.config/opencode/AGENTS.local.md
 !.config/opencode/commands/
-!.config/opencode/commands/writepr.md
-{{ if eq $profile "full" }}
-!.config/opencode/commands/reviewpr.md
-{{ end }}
 !.config/opencode/opencode.jsonc
 !.config/opencode/skills/
 !.config/opencode/skills/**
