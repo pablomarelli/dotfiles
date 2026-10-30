@@ -1,0 +1,56 @@
+{
+  "skill_name": "explain-video",
+  "evals": [
+    {
+      "id": 0,
+      "name": "prnotify-cli-flow",
+      "prompt": "Make an explainer video of how prnotify works, from the command line flags to the Slack message, for new teammates. The repo is at REPO. Put the result in the repo so I can commit it.",
+      "expected_output": "A narrated MP4 at 1920x1080 60 fps under docs/explainers/<slug>/ with an index.html player, a README with chapters and a source-checks table, and a reproducible psychopomp/ crate; the narration only states facts present in the Go code (config resolution order, Slack user lookup, Block Kit message, flags).",
+      "expectations": [
+        "A directory docs/explainers/<slug>/ exists in the repo with an MP4, index.html, README.md, and a psychopomp/ subdirectory containing Cargo.toml, src/main.rs, and narration/script.json.",
+        "The MP4 is 1920x1080, 60 fps, h264 video with AAC audio, and its duration is between 60 and 240 seconds.",
+        "The MP4 has audible speech (integrated loudness between -20 and -12 LUFS) and the film has at least 4 chapters.",
+        "The README contains a source-checks table that maps each narrated claim to a Go file and function in the prnotify repo, and every file path it names exists.",
+        "The narration script mentions at least three real identifiers from the code (for example config.json, -init, -pr, -jira, blocks, chat.postMessage, users.lookupByEmail) and no invented ones.",
+        "The psychopomp crate pins the psychopomp git dependency to rev 1813f2f1d4170679a514cb16e8678f88210b9ac4 and includes a committed Cargo.lock.",
+        "verify.mjs (or an equivalent check) was run and passed: the final response or README reports chapter seeks, decode, and loudness evidence.",
+        "The final response reports which frames or chapter clips were visually inspected before the full render.",
+        "No files were written outside the repo copy, the skill's documented scratch dir (~/.tmp/opencode/), and the engine checkout."
+      ]
+    },
+    {
+      "id": 1,
+      "name": "notify-caps-worker",
+      "prompt": "I need a short video that explains the business flow of jangl-notify-caps: a call or web lead completes, the worker checks whether a buyer or vendor cap was reached, and someone gets notified. Non-engineers on the account team should be able to follow it. Repo: REPO. Save it in the repo.",
+      "expected_output": "A narrated film under docs/explainers/<slug>/ that explains the Kafka topic -> worker -> backend API -> cap check -> notification flow in plain language, defines terms (cap, buyer, vendor, campaign) at first use, uses real identifiers (topic jangl.calls.inbound_calls_complete, CallsCapsWorker, WebleadsCapsWorker, check_calls_is_capped), and labels any example numbers as examples.",
+      "expectations": [
+        "A directory docs/explainers/<slug>/ exists in the repo with an MP4, index.html, README.md, and a psychopomp/ subdirectory containing Cargo.toml, src/main.rs, and narration/script.json.",
+        "The MP4 is 1920x1080, 60 fps, h264 video with AAC audio, and its duration is between 60 and 240 seconds.",
+        "The MP4 has audible speech (integrated loudness between -20 and -12 LUFS) and the film has at least 4 chapters.",
+        "The narration names the Kafka topic jangl.calls.inbound_calls_complete (spoken in any form) and both worker classes or their roles (calls and web leads), and names at least one notification path that exists in the code.",
+        "The narration defines 'cap' in plain language before relying on it, and the README states what the film is and is not (for example, it explains the software, not live production data).",
+        "The README contains a source-checks table where every claim maps to a Python file and function in the repo, and every file path it names exists.",
+        "The psychopomp crate pins the psychopomp git dependency to rev 1813f2f1d4170679a514cb16e8678f88210b9ac4 and includes a committed Cargo.lock.",
+        "verify.mjs (or an equivalent check) was run and passed: the final response or README reports chapter seeks, decode, and loudness evidence.",
+        "The final response reports which frames or chapter clips were visually inspected before the full render."
+      ]
+    },
+    {
+      "id": 2,
+      "name": "fastapi-modular-monolith",
+      "prompt": "Create a 3-minute narrated animation explaining a modular monolith built with FastAPI. Show the application startup, module registration, an HTTP request flowing through router → service → repository → database, and how modules share infrastructure while maintaining boundaries. Use animated diagrams, real Python snippets, and highlight each component as the narration explains it.",
+      "expected_output": "A ~3 minute 1080p60 narrated Psychopomp film with 5-7 chapters covering startup, module registration, the request path, and shared infrastructure vs boundaries, with real Python from a small example project shown on screen and highlighted on cue.",
+      "expectations": [
+        "A film directory exists with an MP4, index.html, README.md, and a psychopomp/ subdirectory containing Cargo.toml, src/main.rs, and narration/script.json.",
+        "The MP4 is 1920x1080, 60 fps, h264 video with AAC audio, and its duration is between 150 and 240 seconds (about 3 minutes).",
+        "The MP4 has audible speech (integrated loudness between -20 and -12 LUFS) and the film has at least 4 chapters.",
+        "Because no repository was given, the agent either wrote a small real FastAPI example project whose code the film shows and the README points to, or clearly stated the code is illustrative; the narration does not claim facts about an unseen codebase.",
+        "The film covers all four requested topics: application startup, module registration, a request flowing router -> service -> repository -> database, and shared infrastructure with module boundaries.",
+        "Real Python snippets appear on screen (as labels, cards, or an editor/diff element) and match the example code; identifiers spoken in narration exist in that code.",
+        "Each component is visually highlighted when the narration names it (beats are cued to phrases, not fixed times); evidence from main.rs shows v.at(..) cues per component.",
+        "verify.mjs (or an equivalent check) was run and passed: the final response or README reports chapter seeks, decode, and loudness evidence.",
+        "The final response reports which frames or chapter clips were visually inspected before the full render."
+      ]
+    }
+  ]
+}

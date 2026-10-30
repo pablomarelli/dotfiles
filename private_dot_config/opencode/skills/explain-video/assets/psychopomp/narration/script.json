@@ -1,0 +1,15 @@
+{
+  "pronounce": { "Redis": "/ɹˈɛdɪs/" },
+  "clips": [
+    {
+      "id": "overview",
+      "title": "What this film explains",
+      "text": "A client sends a request to the API. The API reads from a store and answers. This film follows one request through those three parts, and shows what happens when the store is slow."
+    },
+    {
+      "id": "request",
+      "title": "One request, end to end",
+      "text": "The client calls the API with a lookup. The API asks the store for the record. The store returns the row, and the API answers the client with two hundred OK. When the store is slow, the API returns five oh three, and the client retries."
+    }
+  ]
+}

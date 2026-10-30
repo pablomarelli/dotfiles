@@ -1,0 +1,24 @@
+{
+  "theme": {
+    "name": "opencode",
+    "mode": "system"
+  },
+  "diffs": {
+    "wrap": "word"
+  },
+  "session": {
+    "sidebar": "auto",
+    "scrollbar": false,
+    "thinking": "hide",
+    "image_preview": false,
+    "permissions": "prompt",
+    "markdown": "rendered"
+  },
+  "animations": true,
+  "tabs": {
+    "enabled": false,
+    "scope": "global",
+    "layout": "horizontal"
+  },
+  "plugins": ["./herdr-opencode"]
+}

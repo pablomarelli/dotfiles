@@ -1,0 +1,10 @@
+[package]
+name = "{{CRATE}}"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+anyhow = "1"
+serde_json = "1"
+psychopomp = { git = "https://github.com/kitlangton/psychopomp", rev = "1813f2f1d4170679a514cb16e8678f88210b9ac4" }

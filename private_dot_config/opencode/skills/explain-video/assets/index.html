@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{TITLE}} | Psychopomp</title>
+  <style>
+    :root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #dededb; background: #0a0a09; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { max-width: 1440px; margin: auto; padding: 32px 24px 56px; }
+    header { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; margin-bottom: 24px; }
+    h1 { font-size: 17px; line-height: 1.5; font-weight: 500; margin: 0; }
+    .accent, a { color: #d6b65b; }
+    .muted { color: #96968c; font-size: 12px; line-height: 1.8; }
+    video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #080807; border: 1px solid #292925; border-radius: 8px; }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0; }
+    button { font: inherit; font-size: 12px; padding: 10px 12px; border: 1px solid #34342e; border-radius: 5px; background: transparent; color: #a6a69b; cursor: pointer; }
+    button:hover, button[aria-current="step"] { color: #d6b65b; border-color: #8c7439; }
+    button:focus-visible, a:focus-visible, video:focus-visible, summary:focus-visible { outline: 2px solid #d6b65b; outline-offset: 4px; }
+    .below { display: flex; gap: 24px; justify-content: space-between; flex-wrap: wrap; align-items: baseline; margin-bottom: 28px; }
+    .below p { margin: 0; max-width: 780px; }
+    .download { white-space: nowrap; font-size: 13px; }
+    details { border-top: 1px solid #292925; padding-top: 20px; }
+    summary { cursor: pointer; font-size: 13px; }
+    #transcript { max-width: 900px; font-size: 14px; line-height: 1.8; }
+    h2 { font-size: 14px; font-weight: 500; color: #d6b65b; margin-top: 26px; }
+    @media (max-width: 650px) { main { padding: 20px 12px 32px; } header { display: block; } header p { margin-bottom: 0; } h1 { font-size: 15px; } button { font-size: 11px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1><span class="accent">{{ORG}}</span> / {{TITLE}}</h1>
+      <p class="muted">Rendered with <a href="https://github.com/kitlangton/psychopomp">Psychopomp</a> · 1080p60</p>
+    </header>
+    <video id="film" controls playsinline preload="metadata" poster="psychopomp-poster.jpg" aria-label="Narrated walkthrough: {{TITLE}}. Chapter controls and transcript follow.">
+      <source src="{{SLUG}}-psychopomp.mp4" type="video/mp4">
+      <track kind="chapters" src="psychopomp-chapters.vtt" srclang="en" label="Chapters">
+      Your browser cannot play this video. <a href="{{SLUG}}-psychopomp.mp4">Download the MP4</a>.
+    </video>
+    <nav id="chapters" aria-label="Film chapters"></nav>
+    <div class="below">
+      <p class="muted">{{SUBTITLE}}</p>
+      <a class="download" href="{{SLUG}}-psychopomp.mp4" download>Download narrated MP4</a>
+    </div>
+    <details><summary>Read the transcript</summary><div id="transcript"></div></details>
+    <p class="muted"><a href="README.md">Sources and scope</a> · Built with <a href="https://github.com/kitlangton/psychopomp">Kit Langton's Psychopomp</a></p>
+  </main>
+  <script src="psychopomp-player-data.js"></script>
+  <script>
+    const film = document.getElementById('film');
+    const nav = document.getElementById('chapters');
+    const transcript = document.getElementById('transcript');
+    const chapters = globalThis.PSYCHOPOMP_CHAPTERS;
+    for (const [index, chapter] of chapters.entries()) {
+      const button = document.createElement('button');
+      button.textContent = `${String(index + 1).padStart(2, '0')} ${chapter.title}`;
+      button.addEventListener('click', () => { film.currentTime = chapter.start + 0.7; });
+      nav.append(button);
+      const heading = document.createElement('h2');
+      heading.textContent = chapter.title;
+      const paragraph = document.createElement('p');
+      paragraph.textContent = chapter.text;
+      transcript.append(heading, paragraph);
+    }
+    function highlight() {
+      const active = chapters.findLastIndex(chapter => film.currentTime >= chapter.start);
+      [...nav.children].forEach((button, index) => {
+        if (index === active) button.setAttribute('aria-current', 'step');
+        else button.removeAttribute('aria-current');
+      });
+    }
+    film.addEventListener('timeupdate', highlight);
+    highlight();
+  </script>
+</body>
+</html>

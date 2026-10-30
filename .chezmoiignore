@@ -73,6 +73,7 @@ tests
 .config/zed/**
 .config/navi/jangl.cheat
 .config/zsh/jangl.zsh
+.config/opencode/commands/reviewpr.md
 .gitconfig.work
 {{ end }}
 
@@ -99,31 +100,33 @@ run_onchange_install-zsh-plugins.sh
 # Ignore karabiner auto-backups (generated automatically by karabiner)
 .config/karabiner/automatic_backups
 
-# Ignore most opencode files; keep only the active configs
-.config/opencode/**
-!.config/opencode/
-!.config/opencode/AGENTS.md
-!.config/opencode/AGENTS.local.md
-!.config/opencode/commands/
-!.config/opencode/opencode.jsonc
-!.config/opencode/skills/
-!.config/opencode/skills/**
-!.config/opencode/skills-personal/
-!.config/opencode/skills-personal/**
-# Local instructions, company context, and work skills stay outside dotfiles.
+# Track opencode config by default. Ignore work-related files, secrets,
+# machine-local state, and generated files.
+# Work: local instructions, company context, work skills, Atlassian skills.
 .config/opencode/local-instructions
 .config/opencode/local-instructions/**
 .config/opencode/context
 .config/opencode/context/**
 .config/opencode/skills-work
 .config/opencode/skills-work/**
-!.config/opencode/tui.json
-{{ if and $includeSecrets (ne (env "DOTFILES_FORCE_IGNORE_SECRETS") "1") }}
-!.config/opencode/ntfy.env
-!.config/opencode/zen.env
-{{ end }}
-!.config/opencode/plugins/
-!.config/opencode/plugins/ntfy.js
+.config/opencode/skills/twg*
+.config/opencode/skills/twg*/**
+# Skill symlinked in by another tool (pi).
+.config/opencode/skills/unslop
+.config/opencode/commands/announcepr.md
+# Secrets and machine-local state.
+.config/opencode/secrets
+.config/opencode/secrets/**
+.config/opencode/service.json
+# Generated and tooling files.
+.config/opencode/node_modules
+.config/opencode/node_modules/**
+.config/opencode/package.json
+.config/opencode/package-lock.json
+.config/opencode/bun.lock
+.config/opencode/.gitignore
+.config/opencode/skills/*-workspace
+.config/opencode/skills/*-workspace/**
 
 # Secret-backed templates are opt-in. Keep this list in sync with secret-refs.txt
 # so new 1Password-backed targets cannot render by default.
