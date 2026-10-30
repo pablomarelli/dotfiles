@@ -87,8 +87,12 @@ tab_bar_right_separator = " | "
 tab_bar_right = [
   { type = "zoom" },
   { type = "hostname" },
-  { type = "command", command = 'cd "${HERDR_ACTIVE_PANE_CWD:-$HOME}" && (git symbolic-ref --quiet --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)', interval_seconds = 5, timeout_seconds = 2 },
+  { type = "command", command = 'cd "${HERDR_ACTIVE_PANE_CWD:-$HOME}" && (git symbolic-ref --quiet --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null || true)', interval_seconds = 5, timeout_seconds = 2 },
+{{ if eq .chezmoi.os "darwin" }}
+  { type = "command", command = 'sh "$HOME/.config/herdr/status.sh"', interval_seconds = 5, timeout_seconds = 3 },
+{{ else }}
   { type = "command", command = 'sh "$HOME/.config/herdr/bin/herdr-system-health"', interval_seconds = 5, timeout_seconds = 3 },
+{{ end }}
   { type = "datetime", format = "%a %d %b %H:%M" },
 ]
 
