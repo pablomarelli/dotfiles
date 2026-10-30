@@ -17,9 +17,17 @@ class NavigatorTests(unittest.TestCase):
                 if value is not None:
                     os.environ["HERDR_BIN_PATH"] = value
                 result = subprocess.CompletedProcess((expected,), 0, stdout="ok", stderr="")
-                with patch("subprocess.run", return_value=result) as run:
+                with patch("shutil.which", return_value=value), patch("subprocess.run", return_value=result) as run:
                     self.assertEqual(navigator["herdr"]("pane", "current"), "ok")
                     run.assert_called_once_with((expected, "pane", "current"), text=True, capture_output=True)
+
+    def test_deleted_configured_executable_falls_back_to_path(self) -> None:
+        navigator = runpy.run_path(str(SOURCE))
+        result = subprocess.CompletedProcess(("herdr",), 0, stdout="ok", stderr="")
+        with patch.dict(os.environ, {"HERDR_BIN_PATH": "/deleted/herdr"}):
+            with patch("shutil.which", return_value=None), patch("subprocess.run", return_value=result) as run:
+                self.assertEqual(navigator["herdr"]("pane", "current"), "ok")
+                run.assert_called_once_with(("herdr", "pane", "current"), text=True, capture_output=True)
 
     def test_navigation_routes(self) -> None:
         runpy.run_path(str(SOURCE))["self_check"]()

@@ -1,9 +1,10 @@
 # Invoked by herdr-python to avoid project-specific mise Python settings.
-"""Record every Herdr workspace focus change, whatever triggered it.
+"""Record every Herdr workspace and tab focus change, whatever triggered it.
 
 Herdr has no focus hook, so the TUI's own navigation (Agents tab, sidebar
-clicks, built-in keys) never reaches herdr-last-workspace. This watcher
-subscribes to workspace focus events and keeps the shared history current.
+clicks, built-in keys) never reaches herdr-last-workspace or herdr-last-tab.
+This watcher subscribes to focus events and keeps the shared history current:
+the previous workspace, and the previous tab of each workspace.
 """
 import argparse
 import fcntl
@@ -14,7 +15,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Iterable
 
 
 CACHE = Path.home() / ".cache" / "herdr-last"
@@ -28,15 +29,19 @@ def socket_path() -> str:
     return os.environ.get("HERDR_SOCKET_PATH") or str(Path.home() / ".config" / "herdr" / "herdr.sock")
 
 
-def focused_workspace() -> str | None:
-    result = subprocess.run(("herdr", "workspace", "list"), text=True, capture_output=True)
+def snapshot_workspaces() -> list[dict]:
+    result = subprocess.run(("herdr", "api", "snapshot"), text=True, capture_output=True)
     if result.returncode != 0:
-        return None
+        return []
     try:
-        items = json.loads(result.stdout)["result"]["workspaces"]
+        data = json.loads(result.stdout)
+        return data.get("result", data)["workspaces"]
     except (json.JSONDecodeError, KeyError, TypeError):
-        return None
-    return next((item["workspace_id"] for item in items if item.get("focused")), None)
+        return []
+
+
+def tab_state_path(workspace_id: str) -> Path:
+    return CACHE / f"tab-{workspace_id.replace(':', '_')}"
 
 
 def write_atomic(path: Path, text: str) -> None:
@@ -63,25 +68,54 @@ def updated_mru(current: str, previous: str, ordered: list[str]) -> list[str]:
     return [*head, *(item for item in ordered if item not in head)][:MRU_LIMIT]
 
 
-def record(previous: str, current: str) -> None:
+def record_workspace(previous: str, current: str) -> None:
     write_atomic(PREVIOUS_PATH, previous + "\n")
     write_atomic(MRU_PATH, json.dumps(updated_mru(current, previous, read_mru())))
 
 
-def follow(lines: Iterable[str], current: str | None, on_change: Callable[[str, str], None]) -> None:
+def record_tab(workspace_id: str, previous: str) -> None:
+    write_atomic(tab_state_path(workspace_id), previous + "\n")
+
+
+class FocusState:
+    def __init__(self, workspace: str | None, tabs: dict[str, str]) -> None:
+        self.workspace = workspace
+        self.tabs = tabs
+
+    @classmethod
+    def from_snapshot(cls, workspaces: list[dict]) -> "FocusState":
+        focused = next((w["workspace_id"] for w in workspaces if w.get("focused")), None)
+        tabs = {w["workspace_id"]: w["active_tab_id"] for w in workspaces if w.get("active_tab_id")}
+        return cls(focused, tabs)
+
+    def workspace_focused(self, target: str) -> None:
+        # Herdr re-emits focus for the already focused workspace; only real switches count.
+        if target == self.workspace:
+            return
+        if self.workspace is not None:
+            record_workspace(self.workspace, target)
+        self.workspace = target
+
+    def tab_focused(self, workspace_id: str, target: str) -> None:
+        current = self.tabs.get(workspace_id)
+        if target == current:
+            return
+        if current is not None:
+            record_tab(workspace_id, current)
+        self.tabs[workspace_id] = target
+
+
+def follow(lines: Iterable[str], state: FocusState) -> None:
     for line in lines:
         message = json.loads(line)
         if "error" in message:
             raise SystemExit(f"herdr events.subscribe failed: {message['error']}")
-        if message.get("event") != "workspace_focused":
-            continue
-        target = message["data"]["workspace_id"]
-        # Herdr re-emits focus for the already focused workspace; only real switches count.
-        if target == current:
-            continue
-        if current is not None:
-            on_change(current, target)
-        current = target
+        event = message.get("event")
+        data = message.get("data") or {}
+        if event == "workspace_focused":
+            state.workspace_focused(data["workspace_id"])
+        elif event == "tab_focused":
+            state.tab_focused(data["workspace_id"], data["tab_id"])
 
 
 def acquire_lock():
@@ -105,12 +139,12 @@ def watch() -> int:
         except OSError as exc:
             raise SystemExit(f"cannot connect to herdr socket {socket_path()}: {exc}")
         request = {"id": "workspace-history", "method": "events.subscribe",
-                   "params": {"subscriptions": [{"type": "workspace.focused"}]}}
+                   "params": {"subscriptions": [{"type": "workspace.focused"}, {"type": "tab.focused"}]}}
         client.sendall((json.dumps(request) + "\n").encode())
         # Read the focus after subscribing so no switch falls between the two.
-        current = focused_workspace()
-        # Exits on EOF when the Herdr server stops; the next shell or alt+. restarts it.
-        follow(client.makefile(encoding="utf-8"), current, record)
+        state = FocusState.from_snapshot(snapshot_workspaces())
+        # Exits on EOF when the Herdr server stops; the next shell, alt+. or alt+, restarts it.
+        follow(client.makefile(encoding="utf-8"), state)
     return 0
 
 

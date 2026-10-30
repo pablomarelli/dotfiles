@@ -1,6 +1,6 @@
 ---
 name: unslop
-description: Cut AI tells from any writing. Must always apply.
+description: Cut AI tells from writing. During the STE trial, use only when the user explicitly requests the unslop skill.
 ---
 
 # Unslop

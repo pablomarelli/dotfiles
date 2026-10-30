@@ -2,15 +2,21 @@
 import argparse
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
 
 VIM_NAMES = {"vim", "nvim", "vimdiff", "nvimdiff"}
+# Remote shells get the raw key so a Herdr/Vim on the other end can handle it.
+SSH_NAMES = {"ssh", "mosh-client"}
+PASSTHROUGH_NAMES = VIM_NAMES | SSH_NAMES
 
 
 def herdr(*args: str) -> str:
-    binary = os.environ.get("HERDR_BIN_PATH") or "herdr"
+    configured = os.environ.get("HERDR_BIN_PATH")
+    # Running clients can retain a deleted executable path after an upgrade.
+    binary = (shutil.which(configured) if configured else None) or "herdr"
     result = subprocess.run((binary, *args), text=True, capture_output=True)
     if result.returncode != 0:
         raise SystemExit(result.stderr.strip() or f"herdr {' '.join(args)} failed")
@@ -51,12 +57,22 @@ def proc_names(process: dict | None) -> list[str]:
     return [Path(value).name for value in values if value]
 
 
+def passthrough_reason(process_info: dict) -> str | None:
+    """Return 'vim' or 'ssh' when the foreground process should receive the raw key."""
+    names = set(proc_names(foreground_process(process_info)))
+    if names & VIM_NAMES:
+        return "vim"
+    if names & SSH_NAMES:
+        return "ssh"
+    return None
+
+
 def is_vim(process_info: dict) -> bool:
-    return any(name in VIM_NAMES for name in proc_names(foreground_process(process_info)))
+    return passthrough_reason(process_info) == "vim"
 
 
 def route(process_info: dict, direction: str, key: str) -> tuple[str, str]:
-    if is_vim(process_info):
+    if passthrough_reason(process_info) is not None:
         return "send-key", f"ctrl+{key}"
     return "focus", direction
 
@@ -68,6 +84,7 @@ def self_check() -> None:
     }
     assert route(nvim, "left", "h") == ("send-key", "ctrl+h"), "nvim internal split route"
     assert route(nvim, "right", "l") == ("send-key", "ctrl+l"), "nvim edge route"
+    assert passthrough_reason(nvim) == "vim", "nvim passthrough reason"
 
     shell_with_nvim_descendant = {
         "foreground_process_group_id": 200,
@@ -77,6 +94,42 @@ def self_check() -> None:
         ],
     }
     assert route(shell_with_nvim_descendant, "down", "j") == ("focus", "down"), "non-nvim direct Herdr focus"
+    assert passthrough_reason(shell_with_nvim_descendant) is None, "plain shell has no passthrough"
+
+    # Shape matches `herdr pane process-info` for `ssh -o ProxyCommand=...`.
+    ssh = {
+        "foreground_process_group_id": 300,
+        "foreground_processes": [
+            {"name": "sleep", "argv0": "sleep", "argv": ["sleep", "600"], "pid": 301},
+            {"name": "ssh", "argv0": "ssh", "argv": ["ssh", "remote-host"], "pid": 300},
+        ],
+    }
+    for direction, key in (("left", "h"), ("down", "j"), ("up", "k"), ("right", "l")):
+        assert route(ssh, direction, key) == ("send-key", f"ctrl+{key}"), f"ssh forwards ctrl+{key}"
+    assert passthrough_reason(ssh) == "ssh", "ssh passthrough reason"
+
+    ssh_by_path = {
+        "foreground_process_group_id": 400,
+        "foreground_processes": [{"name": "ssh", "argv0": "/usr/bin/ssh", "argv": ["/usr/bin/ssh", "host"], "pid": 400}],
+    }
+    assert route(ssh_by_path, "up", "k") == ("send-key", "ctrl+k"), "ssh by absolute path forwards"
+
+    shell_with_ssh_descendant = {
+        "foreground_process_group_id": 500,
+        "foreground_processes": [
+            {"name": "zsh", "pid": 500},
+            {"name": "ssh", "pid": 501},
+        ],
+    }
+    assert route(shell_with_ssh_descendant, "left", "h") == ("focus", "left"), "backgrounded ssh keeps Herdr focus"
+
+    opencode = {
+        "foreground_process_group_id": 600,
+        "foreground_processes": [{"name": "opencode.exe", "argv0": "opencode", "pid": 600}],
+    }
+    assert route(opencode, "right", "l") == ("focus", "right"), "other TUIs keep Herdr focus"
+
+    assert route({}, "left", "h") == ("focus", "left"), "missing process info falls back to focus"
 
 
 def main() -> int:
@@ -85,6 +138,7 @@ def main() -> int:
     parser.add_argument("key", nargs="?", choices=("h", "j", "k", "l"))
     parser.add_argument("--status", action="store_true", help="show the decision without acting")
     parser.add_argument("--self-test", action="store_true", help="run routing contract checks")
+    parser.add_argument("--pane", metavar="ID", help="target this pane instead of the current one")
     args = parser.parse_args()
 
     if args.self_test:
@@ -93,23 +147,28 @@ def main() -> int:
     if args.direction is None or args.key is None:
         parser.error("direction and key are required unless --self-test is used")
 
-    pane = load("pane", "current")["pane"]
-    process_info = load("pane", "process-info", "--current")["process_info"]
+    if args.pane:
+        pane = load("pane", "get", args.pane)["pane"]
+    else:
+        pane = load("pane", "current")["pane"]
+    pane_id = pane["pane_id"]
+    process_info = load("pane", "process-info", "--pane", pane_id)["process_info"]
     action_type, action_value = route(process_info, args.direction, args.key)
-    vim = action_type == "send-key"
-    action = f"send {action_value}" if vim else f"focus {action_value}"
+    passthrough = action_type == "send-key"
+    action = f"send {action_value}" if passthrough else f"focus {action_value}"
 
     if args.status:
+        reason = passthrough_reason(process_info) or "none"
         print(
-            f"pane={pane['pane_id']} vim={str(vim).lower()} action={action} "
+            f"pane={pane_id} passthrough={reason} vim={str(is_vim(process_info)).lower()} action={action} "
             f"processes={','.join(proc_names(foreground_process(process_info)))}"
         )
         return 0
 
-    if vim:
-        herdr("pane", "send-keys", pane["pane_id"], action_value)
+    if passthrough:
+        herdr("pane", "send-keys", pane_id, action_value)
     else:
-        herdr("pane", "focus", "--direction", action_value, "--current")
+        herdr("pane", "focus", "--direction", action_value, "--pane", pane_id)
 
     return 0
 

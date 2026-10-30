@@ -64,7 +64,6 @@ tests
 # package scripts all enforce the same public bootstrap tiers from different
 # surfaces. Tests cover these lists together.
 {{ if ne $profile "full" }}
-.aws/**
 .config/aerospace/**
 .config/karabiner/**
 .config/albert/**
@@ -111,7 +110,12 @@ run_onchange_install-zsh-plugins.sh
 !.config/opencode/skills/**
 !.config/opencode/skills-personal/
 !.config/opencode/skills-personal/**
-# Work skills may contain private company context; never manage them in this public repo.
+# Local instructions, company context, and work skills stay outside dotfiles.
+.config/opencode/local-instructions
+.config/opencode/local-instructions/**
+.config/opencode/context
+.config/opencode/context/**
+.config/opencode/skills-work
 .config/opencode/skills-work/**
 !.config/opencode/tui.json
 {{ if and $includeSecrets (ne (env "DOTFILES_FORCE_IGNORE_SECRETS") "1") }}
@@ -126,7 +130,6 @@ run_onchange_install-zsh-plugins.sh
 {{ if or (not $includeSecrets) (eq (env "DOTFILES_FORCE_IGNORE_SECRETS") "1") }}
 .config/opencode/ntfy.env
 .config/opencode/zen.env
-.aws/credentials
 {{ end }}
 
 # Ignore most Zed files; keep only settings and keymap
@@ -134,4 +137,6 @@ run_onchange_install-zsh-plugins.sh
 !.config/zed/settings.json
 !.config/zed/keymap.json
 
-# AWS: OS-conditional content is handled inside the templates themselves
+# AWS: ~/.aws/config is owned by the SSO setup script and credentials come from
+# SSO, so chezmoi does not manage anything under ~/.aws.
+.aws

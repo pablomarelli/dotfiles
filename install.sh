@@ -363,10 +363,6 @@ ensure_op_authenticated() {
 apply_secret_targets() {
   mkdir -p "$HOME/.config/opencode"
   set -- "$HOME/.config/opencode/ntfy.env" "$HOME/.config/opencode/zen.env"
-  if [ "$(os_name)" = "Darwin" ] && [ "$INSTALL_PROFILE" = "full" ]; then
-    mkdir -p "$HOME/.aws"
-    set -- "$@" "$HOME/.aws/credentials"
-  fi
   if [ -n "$OP_SESSION_TOKEN" ]; then
     OP_SESSION="$OP_SESSION_TOKEN" chezmoi apply "$@"
   else

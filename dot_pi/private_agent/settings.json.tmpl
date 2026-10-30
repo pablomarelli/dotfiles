@@ -5,7 +5,7 @@
   "showHardwareCursor": true,
   "defaultProvider": "{{ if eq $profile "remote" }}opencode{{ else }}openai-codex{{ end }}",
   "defaultModel": "{{ if eq $profile "remote" }}mimo-v2.5-free{{ else }}gpt-5.6-sol{{ end }}",
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "low",
 {{ if eq $profile "full" }}
   "skills": [
     "~/.config/opencode/skills-work"

@@ -18,7 +18,7 @@ plan_mise_tools() {
     'node = "24"' \
     'jq = "latest"' \
     'fzf = "latest"' \
-    'tmux = "latest"' \
+    '"aqua:tmux/tmux-builds" = "latest"' \
     'fd = "latest"' \
     'gh = "latest"' \
     'ripgrep = "latest"' \
@@ -29,7 +29,6 @@ plan_mise_tools() {
     '"github:neovim/neovim" = "latest"' \
     '"npm:@opencode/cli" = { version = "latest", allow_builds = ["@opencode/cli"] }' \
     '"npm:@earendil-works/pi-coding-agent" = "latest"' \
-    '"npm:obsidian-headless" = "latest"' \
     'go = "latest"' \
     'python = "3.14"' \
     'worktrunk = "latest"'
@@ -132,9 +131,6 @@ plan_secret_targets() {
     return 0
   fi
   set -- "$HOME/.config/opencode/ntfy.env" "$HOME/.config/opencode/zen.env"
-  if [ "$os_key" = "darwin" ] && [ "$profile" = "full" ]; then
-    set -- "$@" "$HOME/.aws/credentials"
-  fi
   plan_join_words "$@"
 }
 

@@ -1,7 +1,9 @@
 # Global Agent Instructions
 
 - Never use the em dash "—". Use plain dash "-" instead.
-- Before writing any prose response longer than a sentence, load the `unslop` skill and apply it to the final wording. This applies to every model and every agent.
+- During the STE trial, use ASD-STE100 Simplified Technical English principles for all prose responses from every model and agent. Use short sentences, active voice, and one consistent term for each concept. Explain technical terms at first use. Avoid idioms, metaphors, and unnecessary jargon. Preserve technical accuracy, code, identifiers, commands, and quoted text. Apply these principles as a writing style, not as a claim of full ASD-STE100 compliance.
+- During the STE trial, load and apply the `unslop` skill only when the user explicitly requests it.
+- When a response is longer than a short paragraph, or when it gives a verdict, decision, diagnosis, or recommendation, start it with one line in the form `**TL;DR:** <one sentence with the main point>`, followed by a blank line. Do not add a TL;DR to short answers, simple confirmations, or clarifying questions back to the user.
 - When writing commit messages, NEVER auto-add your agent name as co-author.
 - Never manually modify `CHANGELOG.md` files or any files that are marked as auto-generated.
 - When making technical decisions, do not give much weight to development cost. Instead, prefer quality, simplicity, robustness, scalability, and long term maintainability.

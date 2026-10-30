@@ -36,8 +36,8 @@ With a controlling terminal this opens a short wizard. Choose an install profile
 
 | Profile | Use case | Includes | Excludes |
 |---|---|---|---|
-| Remote | Fast SSH/server coding | Neovim, tmux, OpenCode, Pi, Git/GitHub CLI, shell PATH, Node 24, focused search/build tools; OpenCode Zen free-model defaults | GUI terminals, desktop automation, Herdr, containers, Kubernetes, cloud/infra, work/AWS configs |
-| Minimal | Focused workstation | Remote + Herdr, rich shell UX, Starship, zoxide, bat/eza, lazygit, navi, television, sesh, ast-grep, terminal config/install when not headless | Kubernetes/container/cloud/infra stack, AWS/work-specific config, desktop automation extras |
+| Remote | Fast SSH/server coding | Neovim, tmux, OpenCode, Pi, Git/GitHub CLI, shell PATH, Node 24, focused search/build tools; OpenCode Zen free-model defaults | GUI terminals, desktop automation, Herdr, containers, Kubernetes, cloud/infra, work configs |
+| Minimal | Focused workstation | Remote + Herdr, rich shell UX, Starship, zoxide, bat/eza, lazygit, navi, television, sesh, ast-grep, terminal config/install when not headless | Kubernetes/container/cloud/infra stack, work-specific config, desktop automation extras |
 | Full | Complete personal workstation | Everything currently intended, including languages, container/Kubernetes/cloud/infra and GUI/work/personal extras | Codex remains intentionally absent |
 
 Profiles are forward-management choices. Switching from `full` to `minimal` or `remote` stops managing excluded targets and stops installing their profile tools on future runs; it does not uninstall existing tools or delete existing files. Work-specific Pi agents live locally under `~/.pi/agent/agents/work/` and are intentionally excluded from chezmoi.
@@ -169,8 +169,6 @@ GitHub Actions runs the lightweight installer/template tests. The Docker sandbox
 | `~/.gitconfig` | Git config, OS-conditional include paths |
 | `~/.gitconfig.pers` | Personal git profile (SSH key, email) |
 | `~/.gitconfig.work` | Work git profile (SSH key, email) |
-| `~/.aws/config` | AWS profile config (non-secret) |
-| `~/.aws/credentials` | macOS AWS credentials — injected from 1Password only with `--with-secrets` |
 | `~/.config/opencode/` | OpenCode AI assistant config, commands, skills |
 | `~/.config/worktrunk/` | Worktrunk git worktree tool config |
 
@@ -189,7 +187,6 @@ GitHub Actions runs the lightweight installer/template tests. The Docker sandbox
 | AeroSpace | ✓ | — |
 | Karabiner | ✓ | — |
 | Albert | — | ✓ |
-| AWS credentials (1Password, opt-in) | ✓ | — (TODO) |
 | Work config (jangl.zsh) | ✓ | — |
 
 

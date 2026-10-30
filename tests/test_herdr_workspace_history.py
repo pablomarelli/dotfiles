@@ -14,6 +14,10 @@ def focused(workspace_id):
     return json.dumps({"data": {"type": "workspace_focused", "workspace_id": workspace_id}, "event": "workspace_focused"})
 
 
+def tab_focused(workspace_id, tab_id):
+    return json.dumps({"data": {"type": "tab_focused", "workspace_id": workspace_id, "tab_id": tab_id}, "event": "tab_focused"})
+
+
 class WorkspaceHistoryTests(unittest.TestCase):
     def setUp(self):
         loader = importlib.machinery.SourceFileLoader("history", str(SOURCE))
@@ -26,11 +30,15 @@ class WorkspaceHistoryTests(unittest.TestCase):
         self.history.PREVIOUS_PATH = root / "workspace"
         self.history.MRU_PATH = root / "workspace-mru.json"
         self.history.LOCK_PATH = root / "workspace-history.lock"
+        self.history.CACHE = root
 
-    def run_events(self, current, *workspace_ids):
+    def run_events(self, current, *workspace_ids, tabs=None, events=()):
         lines = [json.dumps({"id": "workspace-history", "result": {"type": "subscription_started"}})]
         lines += [focused(workspace_id) for workspace_id in workspace_ids]
-        self.history.follow(lines, current, self.history.record)
+        lines += list(events)
+        state = self.history.FocusState(current, dict(tabs or {}))
+        self.history.follow(lines, state)
+        return state
 
     def test_agent_tab_switches_update_previous_workspace(self):
         self.run_events("w1", "w2", "w3")
@@ -59,7 +67,29 @@ class WorkspaceHistoryTests(unittest.TestCase):
 
     def test_subscription_error_is_reported(self):
         with self.assertRaises(SystemExit):
-            self.history.follow([json.dumps({"id": "x", "error": {"code": "bad"}})], "w1", self.history.record)
+            self.history.follow([json.dumps({"id": "x", "error": {"code": "bad"}})], self.history.FocusState("w1", {}))
+
+    def test_tab_switch_records_previous_tab_per_workspace(self):
+        self.run_events("w1", tabs={"w1": "t1"}, events=[tab_focused("w1", "t2"), tab_focused("w1", "t3")])
+        self.assertEqual(self.history.tab_state_path("w1").read_text(), "t2\n")
+        self.assertFalse(self.history.PREVIOUS_PATH.exists())
+
+    def test_repeated_tab_focus_does_not_erase_history(self):
+        self.run_events("w1", tabs={"w1": "t1"}, events=[tab_focused("w1", "t2"), tab_focused("w1", "t2")])
+        self.assertEqual(self.history.tab_state_path("w1").read_text(), "t1\n")
+
+    def test_unknown_start_tab_waits_for_first_switch(self):
+        self.run_events("w1", events=[tab_focused("w1", "t2")])
+        self.assertFalse(self.history.tab_state_path("w1").exists())
+
+    def test_snapshot_seeds_focused_workspace_and_tabs(self):
+        state = self.history.FocusState.from_snapshot([
+            {"workspace_id": "w1", "focused": True, "active_tab_id": "t1"},
+            {"workspace_id": "w2", "focused": False, "active_tab_id": "t9"},
+            {"workspace_id": "w3", "focused": False},
+        ])
+        self.assertEqual(state.workspace, "w1")
+        self.assertEqual(state.tabs, {"w1": "t1", "w2": "t9"})
 
     def test_only_one_watcher_holds_the_lock(self):
         first = self.history.acquire_lock()

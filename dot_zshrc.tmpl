@@ -75,3 +75,7 @@ fi
 zstyle ':completion:*' menu select
 
 typeset -U path PATH
+
+# Argo CD core mode (no server login/SSO), via kubectl contexts in the argocd namespace
+alias argo-prod='argocd --core --kube-context apptness-prod-argocd'
+alias argo-stg='argocd --core --kube-context apptness-stg-argocd'
