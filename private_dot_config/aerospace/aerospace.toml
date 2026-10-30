@@ -275,6 +275,12 @@ if.app-id = "company.thebrowser.Browser"
 if.during-aerospace-startup = true
 run = ["move-node-to-workspace P", "layout accordion"]
 
+# Agent browsers (Chrome for Testing launched by the Playwright and chrome-devtools MCPs)
+[[on-window-detected]]
+if.app-id = "com.google.chrome.for.testing"
+check-further-callbacks = false
+run = ["move-node-to-workspace 1"]
+
 # Work chrome
 [[on-window-detected]]
 if.app-name-regex-substring = "Google Chrome"

@@ -116,7 +116,12 @@ run_onchange_install-zsh-plugins.sh
 !.config/opencode/skills/**
 !.config/opencode/skills-personal/
 !.config/opencode/skills-personal/**
-# Work skills may contain private company context; never manage them in this public repo.
+# Local instructions, company context, and work skills stay outside dotfiles.
+.config/opencode/local-instructions
+.config/opencode/local-instructions/**
+.config/opencode/context
+.config/opencode/context/**
+.config/opencode/skills-work
 .config/opencode/skills-work/**
 !.config/opencode/tui.json
 {{ if and $includeSecrets (ne (env "DOTFILES_FORCE_IGNORE_SECRETS") "1") }}
@@ -139,4 +144,5 @@ run_onchange_install-zsh-plugins.sh
 !.config/zed/settings.json
 !.config/zed/keymap.json
 
-# AWS: OS-conditional content is handled inside the templates themselves
+# AWS: ~/.aws/config is owned by the SSO setup script, not by chezmoi.
+.aws/config
