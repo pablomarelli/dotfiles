@@ -97,7 +97,7 @@ elif [ "$1" = "apply" ]; then
   is_secret_apply=0
   for target in "$@"; do
     case "$target" in
-      */.config/opencode/ntfy.env|*/.aws/credentials)
+      */.config/opencode/ntfy.env)
         is_secret_apply=1
         ;;
     esac
@@ -453,6 +453,13 @@ render_with_config() {
   HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" execute-template <"$template" >"$output"
 }
 
+# Render a JSONC template and strip full-line // comments so jq can parse it.
+render_jsonc_with_config() {
+  local dir="$1" template="$2" output="$3"
+  render_with_config "$dir" "$template" "$output.jsonc"
+  sed -E '/^[[:space:]]*\/\//d' "$output.jsonc" >"$output"
+}
+
 assert_line_set() {
   local file="$1" expected="$2" actual
   actual="$(awk '/^\[tools\]/{in_tools=1; next} /^\[/{in_tools=0} in_tools && /^[[:space:]]*[A-Za-z0-9_.\/:@"-]+ = / { sub(/[[:space:]]*#.*/, ""); print }' "$file" | sort)"
@@ -466,16 +473,12 @@ assert_ignored_for_profile() {
   local dir="$1" os="$2" profile="$3" include="$4" output="$dir/ignored-$os-$profile-$include"
   make_real_config "$dir" "$include" "$os" "$profile"
   HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" ignored >"$output"
+  HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" managed >"$output.managed"
+  ! grep -q '^\.aws' "$output.managed" || fail "~/.aws must not be managed ($os $profile include=$include)"
   if [[ "$profile" == "full" ]]; then
-    if [[ "$include" == "1" ]]; then
-      assert_not_contains "$output" ".aws/credentials"
-    else
-      assert_contains "$output" ".aws/credentials"
-    fi
     assert_not_contains "$output" ".gitconfig.work"
     assert_not_contains "$output" ".config/opencode/commands/reviewpr.md"
   else
-    assert_contains "$output" ".aws"
     assert_contains "$output" ".gitconfig.work"
     assert_contains "$output" ".config/opencode/commands/reviewpr.md"
     assert_contains "$output" ".config/zsh/jangl.zsh"
@@ -871,8 +874,8 @@ test_darwin_homebrew_op_install_and_refs() {
   (export TEST_OS=darwin DOTFILES_FORCE_INSTALL_OP=1; run_installer "$dir" --profile full --with-secrets)
 
   assert_contains "$dir/events.log" "brew install --cask 1password-cli"
-  assert_contains "$dir/events.log" "op read --no-newline op://Private/AWS Credentials/default_key_id"
-  assert_contains "$dir/events.log" "op read --no-newline op://Private/AWS Credentials/jobnation_secret"
+  assert_contains "$dir/events.log" "op read --no-newline op://Homelab/OpenCode ntfy/token"
+  assert_not_contains "$dir/events.log" "op://Private/AWS Credentials"
   assert_contains "$dir/events.log" "chezmoi apply"
 }
 
@@ -886,13 +889,8 @@ test_secret_target_selection_by_os_profile() {
         if [[ "$include" == "true" ]]; then
           (export TEST_OS="$os"; run_installer "$dir" --profile "$profile" --with-secrets)
           assert_contains "$dir/events.log" "chezmoi apply $dir/home/.config/opencode/ntfy.env $dir/home/.config/opencode/zen.env"
-          if [[ "$os" == "darwin" && "$profile" == "full" ]]; then
-            assert_contains "$dir/events.log" "$dir/home/.aws/credentials"
-            assert_contains "$dir/events.log" "op read --no-newline op://Private/AWS Credentials/default_key_id"
-          else
-            assert_not_contains "$dir/events.log" "$dir/home/.aws/credentials"
-            assert_not_contains "$dir/events.log" "op read --no-newline op://Private/AWS Credentials/default_key_id"
-          fi
+          assert_not_contains "$dir/events.log" "$dir/home/.aws/credentials"
+          assert_not_contains "$dir/events.log" "op://Private/AWS Credentials"
         else
           (export TEST_OS="$os"; run_installer "$dir" --profile "$profile" --without-secrets)
           assert_contains "$dir/events.log" "chezmoi init --apply https://github.com/pablomarelli/dotfiles.git"
@@ -927,7 +925,6 @@ test_real_chezmoi_ignore_and_config_data() {
   HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" ignored >"$dir/ignored-linux"
   assert_contains "$dir/ignored-linux" ".config/opencode/ntfy.env"
   assert_contains "$dir/ignored-linux" ".config/opencode/zen.env"
-  assert_contains "$dir/ignored-linux" ".aws"
 
   make_real_config "$dir" 0 darwin
   assert_contains "$dir/home/.config/chezmoi/chezmoi.toml" "include_secrets = false"
@@ -935,13 +932,11 @@ test_real_chezmoi_ignore_and_config_data() {
   HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" ignored >"$dir/ignored-darwin"
   assert_contains "$dir/ignored-darwin" ".config/opencode/ntfy.env"
   assert_contains "$dir/ignored-darwin" ".config/opencode/zen.env"
-  assert_contains "$dir/ignored-darwin" ".aws"
 
   make_real_config "$dir" 1 darwin full
   HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" ignored >"$dir/ignored-secrets"
   assert_not_contains "$dir/ignored-secrets" ".config/opencode/ntfy.env"
   assert_not_contains "$dir/ignored-secrets" ".config/opencode/zen.env"
-  assert_not_contains "$dir/ignored-secrets" ".aws/credentials"
 
   for os in linux darwin; do
     for profile in remote minimal full; do
@@ -955,7 +950,6 @@ test_real_chezmoi_ignore_and_config_data() {
   DOTFILES_FORCE_IGNORE_SECRETS=1 HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" ignored >"$dir/ignored-force-linux"
   assert_contains "$dir/ignored-force-linux" ".config/opencode/ntfy.env"
   assert_contains "$dir/ignored-force-linux" ".config/opencode/zen.env"
-  assert_contains "$dir/ignored-force-linux" ".aws/credentials"
   mkdir -p "$dir/bin"
   cat >"$dir/bin/op" <<'EOF'
 #!/bin/sh
@@ -968,7 +962,6 @@ EOF
   DOTFILES_FORCE_IGNORE_SECRETS=1 HOME="$dir/home" "$REAL_CHEZMOI" --source "$ROOT_DIR" --config "$dir/home/.config/chezmoi/chezmoi.toml" ignored >"$dir/ignored-force-darwin"
   assert_contains "$dir/ignored-force-darwin" ".config/opencode/ntfy.env"
   assert_contains "$dir/ignored-force-darwin" ".config/opencode/zen.env"
-  assert_contains "$dir/ignored-force-darwin" ".aws/credentials"
 }
 
 test_profile_mise_rendering() {
@@ -992,11 +985,9 @@ gh = "latest"
 go = "latest"
 jq = "latest"
 node = "24"
-opencode = "latest"
-"npm:obsidian-headless" = "latest"
 python = "3.14"
 ripgrep = "latest"
-tmux = "latest"
+"aqua:tmux/tmux-builds" = "latest"
 tree-sitter = "latest"
 worktrunk = "latest"
 EOF
@@ -1012,7 +1003,6 @@ starship = "latest"
 "github:ogulcancelik/herdr" = "latest"
 "npm:@earendil-works/pi-coding-agent" = "latest"
 "npm:@opencode/cli" = { version = "latest", allow_builds = ["@opencode/cli"] }
-"npm:obsidian-headless" = "latest"
 ast-grep = "latest"
 bat = "latest"
 chezmoi = "2.70.0"
@@ -1025,10 +1015,9 @@ go = "latest"
 jq = "latest"
 lazygit = "latest"
 node = "24"
-opencode = "latest"
 python = "3.14"
 ripgrep = "latest"
-tmux = "latest"
+"aqua:tmux/tmux-builds" = "latest"
 tree-sitter = "latest"
 worktrunk = "latest"
 zoxide = "latest"
@@ -1045,7 +1034,6 @@ EOF
 starship = "latest"
 "npm:@earendil-works/pi-coding-agent" = "latest"
 "npm:@opencode/cli" = { version = "latest", allow_builds = ["@opencode/cli"] }
-"npm:obsidian-headless" = "latest"
 "npm:sql-formatter" = "latest"
 ast-grep = "latest"
 bat = "latest"
@@ -1070,7 +1058,6 @@ kubectx = "latest"
 lazydocker = "latest"
 lazygit = "latest"
 node = "24"
-opencode = "latest"
 opentofu = "latest"
 pipx = "latest"
 python = "3.14"
@@ -1078,7 +1065,7 @@ ripgrep = "latest"
 rust = "latest"
 terragrunt = "latest"
 tlrc = "latest"
-tmux = "latest"
+"aqua:tmux/tmux-builds" = "latest"
 tree-sitter = "latest"
 usage = "latest"
 worktrunk = "latest"
@@ -1179,11 +1166,7 @@ test_dryrun_secret_target_plan() {
     output="$dir/dryrun.out"
     assert_contains "$output" "$dir/home/.config/opencode/ntfy.env"
     assert_contains "$output" "$dir/home/.config/opencode/zen.env"
-    if [[ "$profile" == "full" ]]; then
-      assert_contains "$output" "$dir/home/.aws/credentials"
-    else
-      assert_not_contains "$output" "$dir/home/.aws/credentials"
-    fi
+    assert_not_contains "$output" "$dir/home/.aws/credentials"
   done
   (export TEST_OS=darwin; dryrun_installer "$dir" --profile full --without-secrets --non-interactive)
   assert_contains "$dir/dryrun.out" "Secret targets that would be attempted"
@@ -1317,7 +1300,7 @@ test_portable_profile_configs() {
   assert_not_contains "$dir/zprofile-linux" "/opt/homebrew"
   assert_not_contains "$dir/zprofile-linux" "/opt/local"
 
-  render_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-remote.json"
+  render_jsonc_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-remote.json"
   jq -e '.model == "opencode/mimo-v2.5-free" and .small_model == "opencode/ling-3.0-flash-fin-free"' "$dir/opencode-remote.json" >/dev/null
   assert_not_contains "$dir/opencode-remote.json" '"atlassian"'
   assert_not_contains "$dir/opencode-remote.json" '"Devops-MCP-hub"'
@@ -1337,24 +1320,24 @@ test_portable_profile_configs() {
   render_with_config "$dir" "$ROOT_DIR/private_dot_config/ghostty/config.tmpl" "$dir/ghostty-config"
   assert_contains "$dir/ghostty-config" "$dir/home/.config/ghostty/shaders/cursor_smear.glsl"
 
-  render_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-full.json"
+  render_jsonc_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-full.json"
   jq -e '.model == "openai/gpt-5.6-sol" and (.mcp.servers.atlassian.codemode == false) and .mcp.servers["Devops-MCP-hub"] and .mcp.servers.sentry and (.websearch.provider == "random")' "$dir/opencode-full.json" >/dev/null
   jq -e '.mcp.servers.playwright.command[-1] == $output and .mcp.servers["chrome-devtools"]' --arg output "$dir/home/.tmp/opencode/playwright-mcp" "$dir/opencode-full.json" >/dev/null
   assert_not_contains "$dir/opencode-full.json" '"databricks-anthropic"'
 
   mkdir -p "$dir/home/.config/opencode/secrets"
   printf 'fixture-token-never-embedded\n' >"$dir/home/.config/opencode/secrets/databricks-token"
-  render_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-gateway.json"
+  render_jsonc_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-gateway.json"
   jq -e '.model == "databricks-anthropic/system.ai.claude-fable-5-1" and .providers["databricks-anthropic"].settings.apiKey == "{file:~/.config/opencode/secrets/databricks-token}" and .providers["databricks-openai"].models["system.ai.gpt-6-1-sol"]' "$dir/opencode-gateway.json" >/dev/null
   assert_not_contains "$dir/opencode-gateway.json" "fixture-token-never-embedded"
 
   make_real_config "$dir" 0 linux minimal
-  render_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-minimal.json"
+  render_jsonc_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-minimal.json"
   jq -e '.model == "openai/gpt-5.6-sol" and .mcp.servers.playwright and .mcp.servers["chrome-devtools"]' "$dir/opencode-minimal.json" >/dev/null
   assert_not_contains "$dir/opencode-minimal.json" '"databricks-anthropic"'
 
   make_real_config "$dir" 0 linux remote
-  render_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-remote-token.json"
+  render_jsonc_with_config "$dir" "$ROOT_DIR/private_dot_config/opencode/opencode.jsonc.tmpl" "$dir/opencode-remote-token.json"
   jq -e '.model == "opencode/mimo-v2.5-free"' "$dir/opencode-remote-token.json" >/dev/null
   assert_not_contains "$dir/opencode-remote-token.json" '"databricks-anthropic"'
 
@@ -1362,19 +1345,21 @@ test_portable_profile_configs() {
   for config in "$dir"/opencode-*.json; do
     jq -e '
       (has("permission") | not) and
-      (.permissions | length == 22) and
+      (.permissions | length > 100) and
       (all(.permissions[]; (keys == ["action", "effect", "resource"]))) and
+      (all(.permissions[]; .effect == "allow" or .effect == "ask" or .effect == "deny")) and
       (.permissions[0] == {action: "external_directory", resource: "*", effect: "allow"}) and
       (.permissions[1] == {action: "shell", resource: "*", effect: "allow"}) and
-      (.permissions[8] == {action: "read", resource: "*", effect: "allow"}) and
-      ([.permissions[] | select(.effect == "ask") | {action, resource}] == [
-        {action: "shell", resource: "git commit *"},
-        {action: "shell", resource: "git push"},
-        {action: "shell", resource: "git push *"},
-        {action: "shell", resource: "git push --force *"},
-        {action: "shell", resource: "git rebase *"},
-        {action: "shell", resource: "git reset --hard *"}
-      ]) and
+      (any(.permissions[]; . == {action: "read", resource: "*", effect: "allow"})) and
+      (all(.permissions[] | select(.effect == "ask"); .action == "shell")) and
+      ([.permissions[] | select(.effect == "ask") | .resource] | (
+        index("*git* push*--force*") and index("*git* reset*--hard*") and index("*git* rebase *") and
+        index("*git* commit*--amend*") and index("*sudo *") and index("*rm -r*") and
+        index("*kubectl* delete*") and index("*terraform*destroy*") and index("sh")
+      )) and
+      ([.permissions[] | select(.effect == "allow" and .action == "shell") | .resource] | (
+        index("git commit *") and index("gh pr create *") and index("cat *<<*")
+      )) and
       ([.permissions[] | select(.effect == "deny") | .resource] == [
         "**/*.key", "**/*.pem", "**/.aws/credentials", "**/.config/gh/hosts.yml",
         "**/.credentials/**", "**/.env", "**/.env.*", "**/.ssh/**",
@@ -1666,7 +1651,7 @@ test_secret_refs_manifest_covers_template_refs() {
   dir="$(mktemp -d)"
 
   grep -Rho 'output "op" "read" "--no-newline" "op://[^"]*"' \
-    "$ROOT_DIR/private_dot_config" "$ROOT_DIR/private_dot_aws" |
+    "$ROOT_DIR/private_dot_config" |
     sed 's/^.*"\(op:\/\/.*\)"$/\1/' | sort -u >"$dir/template-refs"
   awk 'NF && $1 !~ /^#/ { $1=""; $2=""; sub(/^  */, ""); print }' "$ROOT_DIR/secret-refs.txt" | sort -u >"$dir/manifest-refs"
 
