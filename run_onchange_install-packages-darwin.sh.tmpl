@@ -42,7 +42,7 @@ command_exists brew || { echo -e "${RED}✗${NC} Homebrew installer completed bu
 # ── Homebrew packages ─────────────────────────────────────────────────────────
 # Only things that can't or shouldn't be managed by mise:
 #   - zsh, git, gcc: system-level tools, better via brew on macOS
-#   - ghostty: GUI terminal emulator, macOS-only
+#   - casks: macOS desktop apps and fonts
 BREW_PKGS=(
   zsh           # shell
   git           # version control
@@ -55,6 +55,8 @@ if [[ "$PROFILE" == "full" ]]; then
   dark-notify   # macOS appearance watcher for Neovim
   hunk          # terminal diff viewer
   tailspin      # log highlighter
+  bash wget tree btop gnupg ffmpeg # native macOS tools
+  mysql-client libpq@16           # client tools only; no database service
   )
 elif [[ "$PROFILE" == "minimal" ]]; then
   BREW_PKGS+=(dark-notify)
@@ -64,7 +66,18 @@ BREW_CASKS=()
 if [[ "$PROFILE" != "remote" && "$HEADLESS" != "1" ]]; then
   BREW_CASKS+=(ghostty)
   if [[ "$PROFILE" == "full" ]]; then
-    BREW_CASKS+=(raycast ngrok font-symbols-only-nerd-font)
+    BREW_CASKS+=(
+      ngrok font-symbols-only-nerd-font font-jetbrains-mono
+      # Desktop and development
+      1password bitwarden nikitabobko/tap/aerospace karabiner-elements
+      google-chrome docker-desktop bruno t3-code
+      # Database clients
+      mongodb-compass mysqlworkbench postico sequel-ace
+      # Communication and access
+      slack zoom tailscale-app pritunl
+      # Other desktop apps. Arc sign-in and use end on 2026-12-22.
+      arc chatgpt logitune
+    )
   fi
 fi
 
@@ -76,7 +89,7 @@ elif [[ "$PROFILE" == "full" ]]; then
   BREW_TAPS+=(
     cormacrelf/tap      # dark-notify
     modem-dev/tap       # hunk
-    felixkratz/formulae # borders (optional, not installed by default)
+    nikitabobko/tap     # AeroSpace
   )
 fi
 
@@ -97,13 +110,46 @@ for pkg in "${BREW_PKGS[@]}"; do
   fi
 done
 
+# Apps may already be supplied by IT, the App Store, or a vendor installer.
+# Check both application folders before asking Homebrew to install them.
+cask_app_exists() {
+  local app
+  case "${1##*/}" in
+    ghostty) app="Ghostty.app" ;;
+    1password) app="1Password.app" ;;
+    bitwarden) app="Bitwarden.app" ;;
+    aerospace) app="AeroSpace.app" ;;
+    karabiner-elements) app="Karabiner-Elements.app" ;;
+    google-chrome) app="Google Chrome.app" ;;
+    docker-desktop) app="Docker.app" ;;
+    bruno) app="Bruno.app" ;;
+    t3-code) app="T3 Code (Beta).app" ;;
+    mongodb-compass) app="MongoDB Compass.app" ;;
+    mysqlworkbench) app="MySQLWorkbench.app" ;;
+    postico) app="Postico 2.app" ;;
+    sequel-ace) app="Sequel Ace.app" ;;
+    slack) app="Slack.app" ;;
+    zoom) app="zoom.us.app" ;;
+    tailscale-app) app="Tailscale.app" ;;
+    pritunl) app="Pritunl.app" ;;
+    arc) app="Arc.app" ;;
+    chatgpt) app="ChatGPT.app" ;;
+    logitune) app="Logi Tune.app" ;;
+    *) return 1 ;;
+  esac
+  [[ -d "${DOTFILES_APPLICATIONS_DIR:-/Applications}/$app" || -d "$HOME/Applications/$app" ]]
+}
+
 echo -e "${YELLOW}→${NC} Installing brew casks..."
 for cask in "${BREW_CASKS[@]}"; do
-  if brew list --cask "$cask" &>/dev/null; then
-    echo -e "  ${GREEN}✓${NC} $cask"
+  if brew list --cask "$cask" &>/dev/null || cask_app_exists "$cask"; then
+    echo -e "  ${GREEN}✓${NC} $cask (already installed)"
   else
     echo -e "  ${YELLOW}→${NC} $cask"
-    brew install --cask "$cask" --force || true  # non-fatal: may already be installed via .dmg
+    if ! brew install --cask "$cask"; then
+      echo -e "${RED}✗${NC} Failed to install $cask. Resolve the Homebrew error, then rerun chezmoi apply."
+      exit 1
+    fi
   fi
 done
 
@@ -128,7 +174,12 @@ if ! mise install; then
 fi
 echo -e "${GREEN}✓${NC} mise tools installed"
 
-export PATH="$HOME/.local/share/mise/shims:$PATH"
+export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
+if [[ "$PROFILE" == "full" ]] && ! command_exists terminal-browser; then
+  echo -e "${YELLOW}→${NC} Installing terminal-browser..."
+  TERMINAL_BROWSER_SKIP_SETUP=1 download_and_run "https://terminal-browser.sh/install"
+  command_exists terminal-browser || { echo -e "${RED}✗${NC} terminal-browser installer did not create its launcher"; exit 1; }
+fi
 for cmd in unzip go python3; do
   command_exists "$cmd" || { echo -e "${RED}✗${NC} Post-install preflight failed: $cmd is not on PATH"; exit 1; }
 done

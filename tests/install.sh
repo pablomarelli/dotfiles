@@ -1038,6 +1038,7 @@ ast-grep = "latest"
 bat = "latest"
 cheat = "latest"
 argocd = "latest"
+codex = "0.167.0"
 aws-cli = { version = "latest", symlink_bins = "true" }
 chezmoi = "2.70.0"
 coreutils = "latest"
@@ -1058,7 +1059,16 @@ lazydocker = "latest"
 lazygit = "latest"
 node = "24"
 opentofu = "latest"
-pipx = "latest"
+uv = "latest"
+ruff = "latest"
+act = "latest"
+cmake = "latest"
+helm = "latest"
+sentry-cli = "latest"
+claude-code = "latest"
+bitwarden = "latest"
+mongosh = "latest"
+"github:dmtrKovalenko/fff.nvim" = { version = "latest", matching = "fff-mcp-", bin = "fff-mcp" }
 python = "3.14"
 ripgrep = "latest"
 rust = "latest"
@@ -1124,7 +1134,7 @@ test_dryrun_package_sets_match_profile_contracts() {
       case "$profile" in
         remote) expected="gcc git zsh" ;;
         minimal) expected="dark-notify gcc git zsh" ;;
-        full) expected="dark-notify gcc git git-crypt hunk tailspin zsh" ;;
+        full) expected="dark-notify gcc git git-crypt hunk tailspin zsh bash wget tree btop gnupg ffmpeg mysql-client libpq@16" ;;
       esac
       expected="$(printf '%s\n' $expected | sort | tr '\n' ' ' | sed 's/ $//')"
       [[ "$actual" == "$expected" ]] || fail "dryrun darwin brew package drift for $profile headless=$headless: $actual"
@@ -1133,7 +1143,7 @@ test_dryrun_package_sets_match_profile_contracts() {
       case "$profile" in
         remote) expected="none" ;;
         minimal) expected="cormacrelf/tap" ;;
-        full) expected="cormacrelf/tap felixkratz/formulae modem-dev/tap" ;;
+        full) expected="cormacrelf/tap modem-dev/tap nikitabobko/tap" ;;
       esac
       expected="$(printf '%s\n' $expected | sort | tr '\n' ' ' | sed 's/ $//')"
       [[ "$actual" == "$expected" ]] || fail "dryrun darwin tap drift for $profile headless=$headless: $actual"
@@ -1142,7 +1152,7 @@ test_dryrun_package_sets_match_profile_contracts() {
       case "$profile:$headless" in
         remote:*|minimal:1|full:1) expected="none" ;;
         minimal:0) expected="ghostty" ;;
-        full:0) expected="font-symbols-only-nerd-font ghostty ngrok raycast" ;;
+        full:0) expected="1password arc bitwarden bruno chatgpt docker-desktop font-jetbrains-mono font-symbols-only-nerd-font ghostty google-chrome karabiner-elements logitune mongodb-compass mysqlworkbench ngrok nikitabobko/tap/aerospace postico pritunl sequel-ace slack t3-code tailscale-app zoom" ;;
       esac
       expected="$(printf '%s\n' $expected | sort | tr '\n' ' ' | sed 's/ $//')"
       [[ "$actual" == "$expected" ]] || fail "dryrun darwin cask drift for $profile headless=$headless: $actual"
@@ -1166,6 +1176,10 @@ test_dryrun_secret_target_plan() {
     assert_contains "$output" "$dir/home/.config/opencode/ntfy.env"
     assert_contains "$output" "$dir/home/.config/opencode/zen.env"
     assert_not_contains "$output" "$dir/home/.aws/credentials"
+    assert_not_contains "$output" 'AWS config and Darwin credentials when secrets are enabled'
+    if [[ "$profile" == "full" ]]; then
+      assert_contains "$output" 'AWS CLI; AWS config and credentials need separate setup'
+    fi
   done
   (export TEST_OS=darwin; dryrun_installer "$dir" --profile full --without-secrets --non-interactive)
   assert_contains "$dir/dryrun.out" "Secret targets that would be attempted"
@@ -1504,25 +1518,42 @@ if [ "$1" = "auth" ] && [ "$2" = "token" ]; then printf 'mock-token'; exit 0; fi
 exit 1
 EOF
       chmod +x "$bin/gh"
+      cat >"$bin/curl" <<'EOF'
+#!/bin/sh
+[ "$1" = -fsSL ] && [ "$2" = https://terminal-browser.sh/install ] && [ "$3" = -o ] || exit 2
+cat >"$4" <<'INSTALL'
+#!/bin/sh
+[ "$TERMINAL_BROWSER_SKIP_SETUP" = 1 ] || exit 3
+mkdir -p "$HOME/.local/bin"
+printf '#!/bin/sh\nexit 0\n' >"$HOME/.local/bin/terminal-browser"
+chmod +x "$HOME/.local/bin/terminal-browser"
+INSTALL
+EOF
+      chmod +x "$bin/curl"
       for cmd in unzip go python3; do
         printf '#!/bin/sh\nexit 0\n' >"$bin/$cmd"
         chmod +x "$bin/$cmd"
       done
-      BREW_LOG="$dir/brew.log" MISE_LOG="$dir/mise.log" HOME="$home" PATH="$bin:/usr/bin:/bin" bash "$script" >"$output" 2>&1
+      DOTFILES_APPLICATIONS_DIR="$dir/Applications" BREW_LOG="$dir/brew.log" MISE_LOG="$dir/mise.log" HOME="$home" PATH="$bin:/usr/bin:/bin" bash "$script" >"$output" 2>&1
       actual_pkgs="$(grep '^pkg ' "$dir/brew.log" 2>/dev/null | cut -d' ' -f2- | sort | tr '\n' ' ' | sed 's/ $//' || true)"
       actual_casks="$(grep '^cask ' "$dir/brew.log" 2>/dev/null | cut -d' ' -f2- | sort | tr '\n' ' ' | sed 's/ $//' || true)"
       case "$profile:$headless" in
         remote:*) expected_pkgs="gcc git zsh"; expected_casks="" ;;
         minimal:0) expected_pkgs="dark-notify gcc git zsh"; expected_casks="ghostty" ;;
         minimal:1) expected_pkgs="dark-notify gcc git zsh"; expected_casks="" ;;
-        full:0) expected_pkgs="dark-notify gcc git git-crypt hunk tailspin zsh"; expected_casks="font-symbols-only-nerd-font ghostty ngrok raycast" ;;
-        full:1) expected_pkgs="dark-notify gcc git git-crypt hunk tailspin zsh"; expected_casks="" ;;
+        full:0) expected_pkgs="bash btop dark-notify ffmpeg gcc git git-crypt gnupg hunk libpq@16 mysql-client tailspin tree wget zsh"; expected_casks="1password arc bitwarden bruno chatgpt docker-desktop font-jetbrains-mono font-symbols-only-nerd-font ghostty google-chrome karabiner-elements logitune mongodb-compass mysqlworkbench ngrok nikitabobko/tap/aerospace postico pritunl sequel-ace slack t3-code tailscale-app zoom" ;;
+        full:1) expected_pkgs="bash btop dark-notify ffmpeg gcc git git-crypt gnupg hunk libpq@16 mysql-client tailspin tree wget zsh"; expected_casks="" ;;
       esac
       [[ "$actual_pkgs" == "$expected_pkgs" ]] || fail "unexpected darwin packages for $profile headless=$headless: $actual_pkgs"
       [[ "$actual_casks" == "$expected_casks" ]] || fail "unexpected darwin casks for $profile headless=$headless: $actual_casks"
       assert_contains "$dir/mise.log" "GITHUB_TOKEN="
       assert_not_contains "$dir/mise.log" "GITHUB_TOKEN=present"
       assert_contains "$output" "Post-install preflight passed (unzip, go, python3)"
+      if [[ "$profile" == full ]]; then
+        [[ -x "$home/.local/bin/terminal-browser" ]] || fail "terminal-browser launcher missing"
+      else
+        [[ ! -e "$home/.local/bin/terminal-browser" ]] || fail "terminal-browser installed outside full profile"
+      fi
     done
   done
 
@@ -1554,6 +1585,64 @@ EOF
   fi
   assert_contains "$dir/mise.log" "GITHUB_TOKEN="
   assert_contains "$dir/fail-output" "run 'gh auth login' or export GITHUB_TOKEN"
+}
+
+test_darwin_existing_apps_and_cask_failures() {
+  local dir bin home scenario result brew_present brew_fail
+  for scenario in existing missing managed failure; do
+    dir="$(mktemp -d)"
+    bin="$dir/bin"
+    home="$dir/home"
+    mkdir -p "$bin" "$home" "$dir/Applications"
+    : >"$dir/brew.log"
+    make_real_config "$dir" 0 darwin full
+    render_with_config "$dir" "$ROOT_DIR/run_onchange_install-packages-darwin.sh.tmpl" "$dir/darwin.sh"
+    brew_present=""
+    brew_fail=""
+    case "$scenario" in
+      existing)
+        mkdir -p "$home/Applications/Ghostty.app" "$dir/Applications/Google Chrome.app" "$dir/Applications/zoom.us.app"
+        ;;
+      managed) brew_present="ghostty" ;;
+      failure) brew_fail="ghostty" ;;
+    esac
+    cat >"$bin/brew" <<'EOF'
+#!/bin/sh
+case "$1" in
+  tap) exit 0 ;;
+  list) [ "$2" = "--cask" ] && [ "${3##*/}" = "${BREW_PRESENT:-}" ]; exit $? ;;
+  install)
+    printf '%s\n' "$*" >>"$BREW_LOG"
+    if [ "$2" = "--cask" ] && [ "$3" = "${BREW_FAIL:-}" ]; then exit 42; fi
+    ;;
+esac
+exit 0
+EOF
+    chmod +x "$bin/brew"
+    for cmd in mise unzip go python3 terminal-browser; do
+      printf '#!/bin/sh\nexit 0\n' >"$bin/$cmd"
+      chmod +x "$bin/$cmd"
+    done
+    result=0
+    DOTFILES_APPLICATIONS_DIR="$dir/Applications" BREW_LOG="$dir/brew.log" BREW_PRESENT="$brew_present" BREW_FAIL="$brew_fail" HOME="$home" PATH="$bin:/usr/bin:/bin" bash "$dir/darwin.sh" >"$dir/output" 2>&1 || result=$?
+    if [[ "$scenario" == "failure" ]]; then
+      [[ "$result" -ne 0 ]] || fail "failed cask install unexpectedly succeeded"
+      assert_contains "$dir/output" "Failed to install ghostty"
+    else
+      [[ "$result" -eq 0 ]] || fail "darwin app scenario failed: $scenario"
+      case "$scenario" in
+        existing)
+          assert_not_contains "$dir/brew.log" 'install --cask ghostty'
+          assert_not_contains "$dir/brew.log" 'install --cask google-chrome'
+          assert_not_contains "$dir/brew.log" 'install --cask zoom'
+          assert_contains "$dir/brew.log" 'install --cask bruno'
+          ;;
+        managed) assert_not_contains "$dir/brew.log" 'install --cask ghostty' ;;
+        missing) assert_contains "$dir/brew.log" 'install --cask ghostty' ;;
+      esac
+    fi
+    assert_not_contains "$dir/brew.log" '--force'
+  done
 }
 
 test_linux_package_sets_by_profile_headless_on_linux() {
@@ -1925,6 +2014,7 @@ test_aliases_preserve_system_commands_without_optional_tools
 test_direct_template_profile_validation_and_legacy_defaults
 test_package_scripts_track_mise_config
 test_darwin_package_sets_without_github_token
+test_darwin_existing_apps_and_cask_failures
 test_linux_package_sets_by_profile_headless_on_linux
 test_ambient_op_session_is_captured_and_not_leaked
 test_secret_refs_manifest_covers_template_refs

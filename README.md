@@ -38,7 +38,7 @@ With a controlling terminal this opens a short wizard. Choose an install profile
 |---|---|---|---|
 | Remote | Fast SSH/server coding | Neovim, tmux, OpenCode, Pi, Git/GitHub CLI, shell PATH, Node 24, focused search/build tools; OpenCode Zen free-model defaults | GUI terminals, desktop automation, Herdr, containers, Kubernetes, cloud/infra, work configs |
 | Minimal | Focused workstation | Remote + Herdr, rich shell UX, Starship, zoxide, bat/eza, lazygit, navi, television, sesh, ast-grep, terminal config/install when not headless | Kubernetes/container/cloud/infra stack, work-specific config, desktop automation extras |
-| Full | Complete personal workstation | Everything currently intended, including languages, container/Kubernetes/cloud/infra and GUI/work/personal extras | Codex remains intentionally absent |
+| Full | Complete personal workstation | Selected languages, container/Kubernetes/cloud/infra tools, Codex, and GUI/work/personal extras | Tools excluded by the migration selection |
 
 Profiles are forward-management choices. Switching from `full` to `minimal` or `remote` stops managing excluded targets and stops installing their profile tools on future runs; it does not uninstall existing tools or delete existing files. Work-specific Pi agents live locally under `~/.pi/agent/agents/work/` and are intentionally excluded from chezmoi.
 
@@ -194,7 +194,37 @@ GitHub Actions runs the lightweight installer/template tests. The Docker sandbox
 
 ## Tools
 
-All CLI tools are managed via [mise](https://mise.jdx.dev) in `~/.config/mise/config.toml`.
+Mise manages the portable CLI tools in `~/.config/mise/config.toml`. Full adds
+act, CMake, Helm, Sentry CLI, uv/uvx, Ruff, Claude Code, Bitwarden CLI, mongosh,
+and fff-mcp. Bitwarden CLI selects the target architecture; no old binary is copied.
+The existing live Codex pin (`0.167.0`) is retained with the approved Mise baseline.
+Ruff, Delta, Television, Worktrunk, and Starship each have one owner: Mise.
+
+On macOS, Homebrew supplies Bash, wget, tree, btop, GnuPG, FFmpeg, `mysql-client`,
+and `libpq@16`. These exceptions provide native builds and client libraries.
+Current btop releases in the Mise registry support Linux only. Database setup
+does not install MySQL or PostgreSQL server formulas or start database services.
+Shell PATH includes the two keg-only client directories on Apple Silicon and Intel.
+
+Full macOS setup installs terminal-browser from its vendor installer if missing.
+The vendor verifies the archive checksum. Interactive setup remains separate:
+
+```bash
+terminal-browser setup
+```
+
+TWG uses its vendor's interactive installer for agreements, authentication, and
+agent skills. Run this on the new Mac after the shared setup:
+
+```bash
+curl -fsSL --retry 2 https://teamwork-graph.atlassian.com/cli/install | bash -s -- --plugin opencode
+```
+
+Do not add a second Mise installation of TWG. After setup, verify `twg doctor`.
+Python CLI apps can use `uv tool` when needed. The initial setup omits pipx,
+Posting, Harlequin, trafilatura, xlsx2csv, asitop, Slack CLI, Telepresence, ksync,
+lsd, omp, tuicr, spf, webi, Corepack, fswatch, gnu-sed, git-filter-repo,
+tmux-fingers, and borders. Project dependencies remain project-owned.
 
 | Tool | Description |
 |---|---|
@@ -230,10 +260,57 @@ macOS-only (via Homebrew):
 | Tool | Description |
 |---|---|
 | ghostty | Terminal emulator |
-| raycast | Launcher |
 | git-crypt | Git encryption |
 | hunk | Terminal diff viewer |
 | tailspin | Log highlighter |
+
+### macOS desktop apps
+
+The Full profile installs these Homebrew casks on desktop Macs:
+
+| Group | Apps |
+|---|---|
+| Desktop and development | Ghostty, 1Password, Bitwarden, AeroSpace, Karabiner-Elements, Google Chrome, Docker Desktop, Bruno, T3 Code |
+| Database clients | MongoDB Compass, MySQL Workbench, Postico 2, Sequel Ace |
+| Communication and access | Slack, Zoom, Tailscale, Pritunl |
+| Other desktop apps | Arc, ChatGPT, Logi Tune |
+| Fonts and utilities | JetBrains Mono, Symbols Nerd Font, ngrok |
+
+Minimal installs Ghostty. Remote and headless profiles skip all casks.
+
+The installer skips apps already present in `/Applications` or `~/Applications`,
+including apps supplied by IT or installed manually. Existing Homebrew casks are
+also skipped. Missing casks install without `--force`. A failed install stops
+bootstrap with the cask name; fix the error and rerun `chezmoi apply`.
+`DOTFILES_APPLICATIONS_DIR` overrides the system folder checked for existing
+apps. Isolated tests use it to avoid checking the host's `/Applications` folder.
+
+### New Mac app follow-up
+
+After delivery, check which apps and device-management steps IT completed.
+Run the Full profile for the remaining Homebrew apps, then complete these steps:
+
+1. **Tiny RDM:** open the [official releases](https://github.com/tiny-craft/tiny-rdm/releases/latest).
+   Download the Mac `arm64.dmg` for Apple Silicon or `intel.dmg` for Intel.
+   Open the disk image and copy Tiny RDM to Applications. Launch it and confirm
+   that the main window opens. Restore selected connection settings separately.
+2. **Synergy:** open the [vendor download page](https://symless.com/synergy/download).
+   Select the product and edition covered by your license. Sign in to the vendor
+   account if you need to check the license. Download and install the matching
+   macOS build. Launch it, activate it, and complete its permission prompts.
+   Restore the selected settings, adjust the screen layout, and check keyboard
+   and mouse sharing with the other computer.
+3. Complete remaining app sign-ins, licenses, and macOS permission prompts.
+   Check any missing company enrollment or device-management steps with IT.
+
+Vendor downloads checked on 2026-11-09: Tiny RDM 1.2.7 provides both Mac
+architectures. Synergy lists stable versions 1.22.4 and 3.9.1; use the product
+covered by your license. Check the vendor pages again at installation time.
+
+Arc remains in the Full profile and is installable as of 2026-11-09. Its vendor
+states that [sign-in and use end on 2026-12-22](https://resources.arc.net/hc/en-us/articles/25583851606039-How-Do-I-Export-My-Data-from-Arc).
+Homebrew also schedules disabling the cask that day. Preserve selected Arc links
+before that date and review the app entry before later clean installs.
 
 ---
 

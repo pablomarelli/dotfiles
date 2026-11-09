@@ -59,7 +59,16 @@ plan_mise_tools() {
       'xh = "latest"' \
       'tlrc = "latest"' \
       'cheat = "latest"' \
-      'pipx = "latest"' \
+      'uv = "latest"' \
+      'ruff = "latest"' \
+      'act = "latest"' \
+      'cmake = "latest"' \
+      'helm = "latest"' \
+      'sentry-cli = "latest"' \
+      'claude-code = "latest"' \
+      'bitwarden = "latest"' \
+      'mongosh = "latest"' \
+      '"github:dmtrKovalenko/fff.nvim" = { version = "latest", matching = "fff-mcp-", bin = "fff-mcp" }' \
       'coreutils = "latest"' \
       'usage = "latest"' \
       'k3d = "latest"' \
@@ -68,7 +77,8 @@ plan_mise_tools() {
       'kubectl = "latest"' \
       'aws-cli = { version = "latest", symlink_bins = "true" }' \
       '"aqua:grafana/grafanactl" = "latest"' \
-      'argocd = "latest"'
+      'argocd = "latest"' \
+      'codex = "0.167.0"'
   fi
 }
 
@@ -89,7 +99,7 @@ plan_darwin_brew_packages() {
       set -- "$@" dark-notify
       ;;
     full)
-      set -- "$@" git-crypt dark-notify hunk tailspin
+      set -- "$@" git-crypt dark-notify hunk tailspin bash wget tree btop gnupg ffmpeg mysql-client libpq@16
       ;;
   esac
   plan_join_words "$@"
@@ -102,7 +112,7 @@ plan_darwin_brew_taps() {
       plan_join_words cormacrelf/tap
       ;;
     full)
-      plan_join_words cormacrelf/tap modem-dev/tap felixkratz/formulae
+      plan_join_words cormacrelf/tap modem-dev/tap nikitabobko/tap
       ;;
     *)
       plan_join_words
@@ -118,7 +128,12 @@ plan_darwin_brew_casks() {
   elif [ "$profile" = "minimal" ]; then
     plan_join_words ghostty
   else
-    plan_join_words ghostty raycast ngrok font-symbols-only-nerd-font
+    plan_join_words \
+      ghostty ngrok font-symbols-only-nerd-font font-jetbrains-mono \
+      1password bitwarden nikitabobko/tap/aerospace karabiner-elements \
+      google-chrome docker-desktop bruno t3-code \
+      mongodb-compass mysqlworkbench postico sequel-ace \
+      slack zoom tailscale-app pritunl arc chatgpt logitune
   fi
 }
 
@@ -153,6 +168,9 @@ plan_external_downloads() {
   fi
   if [ "$os_key" = "darwin" ]; then
     set -- "$@" "Homebrew installer: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh (only if brew is missing)"
+    if [ "$profile" = "full" ]; then
+      set -- "$@" "terminal-browser vendor installer: https://terminal-browser.sh/install (only if terminal-browser is missing; interactive setup is separate)"
+    fi
   fi
   if [ "$os_key" = "linux" ] && [ "$profile" != "remote" ] && [ "$headless" != "1" ]; then
     set -- "$@" "terminal installer: Ghostty Ubuntu installer https://raw.githubusercontent.com/mkasberg/ghostty-ubuntu/HEAD/install.sh"
@@ -247,12 +265,12 @@ main() {
       print_plan_lines "Excluded important target families" "work-specific config including .gitconfig.work/worktrunk/jangl" "AWS config/credentials" "container/Kubernetes/cloud/infra tools" "desktop automation extras"
       ;;
     full:1)
-      print_plan_lines "Managed configuration groups" "Remote and Minimal profile groups" "work-specific Git/config targets" "AWS config and Darwin credentials when secrets are enabled" "container/Kubernetes/cloud/infra tools"
-      print_plan_lines "Excluded important target families" "terminal GUI configuration and installation" "Codex global tool entry remains intentionally absent"
+      print_plan_lines "Managed configuration groups" "Remote and Minimal profile groups" "work-specific Git/config targets" "AWS CLI; AWS config and credentials need separate setup" "container/Kubernetes/cloud/infra tools"
+      print_plan_lines "Excluded important target families" "terminal GUI configuration and installation" "tools excluded by the migration selection"
       ;;
     full:0)
-      print_plan_lines "Managed configuration groups" "Remote and Minimal profile groups" "work-specific Git/config targets" "AWS config and Darwin credentials when secrets are enabled" "container/Kubernetes/cloud/infra tools" "GUI/desktop extras"
-      print_plan_lines "Excluded important target families" "Codex global tool entry remains intentionally absent"
+      print_plan_lines "Managed configuration groups" "Remote and Minimal profile groups" "work-specific Git/config targets" "AWS CLI; AWS config and credentials need separate setup" "container/Kubernetes/cloud/infra tools" "GUI/desktop extras"
+      print_plan_lines "Excluded important target families" "tools excluded by the migration selection"
       ;;
   esac
 
@@ -275,6 +293,25 @@ main() {
     "GitHub auth is optional; if mise hits rate limits, run 'gh auth login' or export GITHUB_TOKEN, then retry mise install." \
     "Smaller profiles stop managing excluded targets but do not uninstall existing tools or delete existing files." \
     "chezmoi apply --dry-run only previews file operations; it is not equivalent to this installer plan."
+
+  if [ "$profile" = "full" ]; then
+    print_plan_lines "Manual CLI follow-up" \
+      "TWG: run the interactive vendor installer at https://teamwork-graph.atlassian.com/cli/install, then complete fresh authentication and skill setup." \
+      "terminal-browser: run terminal-browser setup on the new Mac after installation."
+  fi
+
+  if [ "$os_key" = "darwin" ] && [ "$profile" != "remote" ] && [ "$headless" != "1" ]; then
+    print_plan_lines "macOS app setup" \
+      "Existing apps in /Applications or ~/Applications are skipped, including apps installed by IT." \
+      "Missing casks are installed without --force; install failures stop bootstrap so they can be retried."
+    if [ "$profile" = "full" ]; then
+      print_plan_lines "Manual macOS app follow-up" \
+        "Tiny RDM: choose the Apple Silicon or Intel DMG from https://github.com/tiny-craft/tiny-rdm/releases/latest." \
+        "Synergy: choose the product covered by your license at https://symless.com/synergy/download." \
+        "Arc: sign-in and use end on 2026-12-22; Homebrew also schedules disabling the cask that day." \
+        "Check what IT completed before delivery, then finish remaining app sign-ins, licenses, and permissions."
+    fi
+  fi
 
   printf '\nNO CHANGES WERE MADE.\n'
 }
