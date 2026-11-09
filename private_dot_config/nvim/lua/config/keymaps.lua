@@ -17,18 +17,46 @@ local navigator_keys = {
   ["<C-l>"] = { direction = "right", window = "l" },
 }
 
-local function navigate_herdr(direction, window)
+local function navigate_window(direction, window)
   if vim.fn.winnr(window) ~= vim.fn.winnr() then
     vim.cmd("wincmd " .. window)
     return
   end
 
-  vim.fn.jobstart({ "herdr", "pane", "focus", "--direction", direction, "--current" }, { detach = true })
+  local command = { "herdr", "pane", "focus", "--direction", direction, "--current" }
+  if vim.env.REX_SESSION and vim.env.REX_BLOCK then
+    command = { "rex" }
+    if vim.env.REX_SERVER and vim.env.REX_SERVER ~= "" then
+      vim.list_extend(command, { "-S", vim.env.REX_SERVER })
+    end
+    vim.list_extend(command, {
+      "do",
+      "-s",
+      vim.env.REX_SESSION,
+      "-b",
+      vim.env.REX_BLOCK,
+      "pane.focus",
+      "direction=" .. direction,
+      "wrap=false",
+    })
+  end
+
+  if vim.fn.executable(command[1]) ~= 1 then
+    vim.notify("Navigation command not found: " .. command[1], vim.log.levels.ERROR)
+    return
+  end
+  vim.system(command, { text = true }, function(result)
+    if result.code ~= 0 then
+      vim.schedule(function()
+        vim.notify("Pane navigation failed: " .. (result.stderr or ""), vim.log.levels.ERROR)
+      end)
+    end
+  end)
 end
 
 for key, target in pairs(navigator_keys) do
   vim.keymap.set("n", key, function()
-    navigate_herdr(target.direction, target.window)
+    navigate_window(target.direction, target.window)
   end, { silent = true, desc = "Navigate " .. target.direction })
 end
 

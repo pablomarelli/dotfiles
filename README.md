@@ -2,6 +2,18 @@
 
 Personal dotfiles managed with [chezmoi](https://chezmoi.io). Supports macOS and Linux (Ubuntu/Debian).
 
+## Preserved workstation settings
+
+AeroSpace includes the live Chrome agent-profile routing helper. Neovim keeps
+Rex-aware pane navigation with Herdr fallback. Review monitor names in AeroSpace
+on the new Mac.
+
+Ghostty shaders are ordinary tracked files so a clean clone includes the selected
+`cursor_smear.glsl`. The former incomplete gitlink pointed to
+`hackrdotsh/ghostty-shaders` commit `cb6eb4b0d1a3101c869c62e458b25a826f9dcde3`.
+This snapshot preserves that content and the eight additional local shaders.
+Upstream attribution remains in the shader files and `shaders/Readme.md`.
+
 ## Quick start
 
 ### Prerequisites
