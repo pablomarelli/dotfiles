@@ -56,6 +56,8 @@ pi() (
   command pi "$@"
 )
 
+{{ if or .install_headless (eq .install_profile "remote") -}}
 # This machine is SSH/headless-only. Force 1Password CLI to use manual
 # account sign-in instead of trying to connect to the desktop app.
 export OP_BIOMETRIC_UNLOCK_ENABLED=false
+{{ end -}}
