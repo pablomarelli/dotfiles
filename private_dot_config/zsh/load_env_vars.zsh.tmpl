@@ -6,7 +6,11 @@ export CLAUDE_CODE_NATIVE_CURSOR=1
 # Bitwarden session + JIRA credentials.
 # ponytail: do not call bw during shell startup; run jira-env when credentials are needed.
 if command -v bw >/dev/null 2>&1; then
-  source ~/.local/bin/bw-session
+  # Reuse a cached session without calling bw. bw-session logs in or unlocks on demand.
+  if [[ -s "$HOME/.cache/.bw_session" ]]; then
+    source "$HOME/.cache/.bw_session"
+    export BW_SESSION
+  fi
 
   export JIRA_URL="https://whatifmediagroup.atlassian.net"
   _jira_cache="$HOME/.cache/.bw_jira_creds"
@@ -17,6 +21,7 @@ if command -v bw >/dev/null 2>&1; then
   fi
 
   jira-env() {
+    source ~/.local/bin/bw-session || return 1
     _jira_cache="$HOME/.cache/.bw_jira_creds"
     JIRA_USERNAME="$(bw get item JIRA_USERNAME | jq -r '.fields[] | select(.name=="JIRA_USERNAME") | .value')"
     JIRA_API_TOKEN="$(bw get item JIRA_API_TOKEN | jq -r '.fields[] | select(.name=="JIRA_API_TOKEN") | .value')"
